@@ -17,6 +17,29 @@ function Login() {
   );
 }
 
+const maskPrice = (value) => {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const padded = digits.padStart(3, '0');
+  const cents = padded.slice(-2);
+  const reais = padded.slice(0, -2);
+  const withDots = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return withDots + ',' + cents;
+};
+
+const unmaskPrice = (masked) => {
+  if (!masked) return '';
+  return parseFloat(masked.replace(/\./g, '').replace(',', '.'));
+};
+
+const toMaskedPrice = (num) => {
+  if (num === null || num === undefined || num === '') return '';
+  const fixed = Number(num).toFixed(2);
+  const parts = fixed.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return parts.join(',');
+};
+
 function Dashboard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -35,7 +58,10 @@ function Dashboard() {
 
   const fetchAds = async () => {
     try {
-      const res = await api.get('/ads', { params: filters });
+      const params = {};
+      if (filters.minPrice) params.minPrice = unmaskPrice(filters.minPrice);
+      if (filters.maxPrice) params.maxPrice = unmaskPrice(filters.maxPrice);
+      const res = await api.get('/ads', { params });
       setAds(res.data);
     } catch (err) {
       console.error(err);
@@ -45,11 +71,15 @@ function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        price: unmaskPrice(formData.price)
+      };
       if (formData.id) {
-        await api.put(`/ads/${formData.id}`, formData);
+        await api.put(`/ads/${formData.id}`, payload);
         alert('Atualizado com sucesso!');
       } else {
-        await api.post('/ads', formData);
+        await api.post('/ads', payload);
         alert('Criado com sucesso!');
       }
       setFormData({ id: null, title: '', price: '', available_quantity: '' });
@@ -66,7 +96,7 @@ function Dashboard() {
       <h2>{formData.id ? 'Editar Anúncio' : 'Novo Anúncio'}</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
         <input required placeholder="Título" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-        <input required type="number" placeholder="Preço" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+        <input required placeholder="Preço" value={formData.price} onChange={e => setFormData({...formData, price: maskPrice(e.target.value)})} />
         <input required type="number" placeholder="Estoque" value={formData.available_quantity} onChange={e => setFormData({...formData, available_quantity: e.target.value})} />
         <button type="submit">{formData.id ? 'Atualizar' : 'Salvar'}</button>
         {formData.id && <button type="button" onClick={() => setFormData({ id: null, title: '', price: '', available_quantity: '' })}>Cancelar Edição</button>}
@@ -74,8 +104,8 @@ function Dashboard() {
 
       <h2>Meus Anúncios</h2>
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <input type="number" placeholder="Preço Mín" value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: e.target.value})} />
-        <input type="number" placeholder="Preço Máx" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: e.target.value})} />
+        <input placeholder="Preço Mín" value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: maskPrice(e.target.value)})} />
+        <input placeholder="Preço Máx" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: maskPrice(e.target.value)})} />
         <button onClick={fetchAds}>Filtrar</button>
       </div>
 
@@ -84,8 +114,8 @@ function Dashboard() {
         <tbody>
           {ads.map(ad => (
             <tr key={ad._id}>
-              <td>{ad.ml_id}</td><td>{ad.title}</td><td>R$ {ad.price}</td><td>{ad.available_quantity}</td>
-              <td><button onClick={() => setFormData({ id: ad._id, title: ad.title, price: ad.price, available_quantity: ad.available_quantity })}>Editar</button></td>
+              <td>{ad.ml_id}</td><td>{ad.title}</td><td>R$ {toMaskedPrice(ad.price)}</td><td>{ad.available_quantity}</td>
+              <td><button onClick={() => setFormData({ id: ad._id, title: ad.title, price: toMaskedPrice(ad.price), available_quantity: ad.available_quantity })}>Editar</button></td>
             </tr>
           ))}
         </tbody>
