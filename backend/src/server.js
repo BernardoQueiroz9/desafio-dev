@@ -20,9 +20,17 @@ app.use('/mock', mockRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ads', adsRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Conectado');
-    app.listen(process.env.PORT, () => console.log(`🚀 Servidor rodando na porta ${process.env.PORT}`));
-  })
-  .catch(err => console.error('Erro no MongoDB:', err));
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+
+  let uri = process.env.MONGO_URI;
+  if (uri && !uri.includes('%24')) {
+    uri = uri.replace(/:([^@]+)@/, (_, pwd) => ':' + encodeURIComponent(pwd) + '@');
+  }
+
+  mongoose.connect(uri || '')
+    .then(() => console.log('MongoDB Conectado'))
+    .catch(err => console.error('Erro no MongoDB:', err.message));
+});
