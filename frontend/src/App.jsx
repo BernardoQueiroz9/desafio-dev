@@ -17,14 +17,15 @@ function Login() {
   );
 }
 
-const maskPrice = (value) => {
-  const digits = value.replace(/\D/g, '');
+const stripDigits = (value) => value.replace(/\D/g, '');
+
+const formatPrice = (value) => {
+  const digits = stripDigits(value);
   if (!digits) return '';
   const padded = digits.padStart(3, '0');
   const cents = padded.slice(-2);
   const reais = padded.slice(0, -2);
-  const withDots = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return withDots + ',' + cents;
+  return reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + cents;
 };
 
 const unmaskPrice = (masked) => {
@@ -59,8 +60,8 @@ function Dashboard() {
   const fetchAds = async () => {
     try {
       const params = {};
-      if (filters.minPrice) params.minPrice = unmaskPrice(filters.minPrice);
-      if (filters.maxPrice) params.maxPrice = unmaskPrice(filters.maxPrice);
+      if (filters.minPrice) params.minPrice = unmaskPrice(formatPrice(filters.minPrice));
+      if (filters.maxPrice) params.maxPrice = unmaskPrice(formatPrice(filters.maxPrice));
       const res = await api.get('/ads', { params });
       setAds(res.data);
     } catch (err) {
@@ -71,9 +72,10 @@ function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const formattedPrice = formatPrice(formData.price);
       const payload = {
         ...formData,
-        price: unmaskPrice(formData.price)
+        price: formattedPrice ? unmaskPrice(formattedPrice) : ''
       };
       if (formData.id) {
         await api.put(`/ads/${formData.id}`, payload);
@@ -89,6 +91,34 @@ function Dashboard() {
     }
   };
 
+  const handlePriceFocus = () => {
+    setFormData(prev => ({ ...prev, price: stripDigits(prev.price) }));
+  };
+
+  const handlePriceBlur = () => {
+    setFormData(prev => ({ ...prev, price: prev.price ? formatPrice(prev.price) : '' }));
+  };
+
+  const handlePriceChange = (e) => {
+    setFormData(prev => ({ ...prev, price: stripDigits(e.target.value) }));
+  };
+
+  const handleMinPriceFocus = () => {
+    setFilters(prev => ({ ...prev, minPrice: stripDigits(prev.minPrice) }));
+  };
+
+  const handleMinPriceBlur = () => {
+    setFilters(prev => ({ ...prev, minPrice: prev.minPrice ? formatPrice(prev.minPrice) : '' }));
+  };
+
+  const handleMaxPriceFocus = () => {
+    setFilters(prev => ({ ...prev, maxPrice: stripDigits(prev.maxPrice) }));
+  };
+
+  const handleMaxPriceBlur = () => {
+    setFilters(prev => ({ ...prev, maxPrice: prev.maxPrice ? formatPrice(prev.maxPrice) : '' }));
+  };
+
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <button onClick={() => { localStorage.removeItem('userId'); navigate('/'); }}>Sair</button>
@@ -96,7 +126,7 @@ function Dashboard() {
       <h2>{formData.id ? 'Editar Anúncio' : 'Novo Anúncio'}</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
         <input required placeholder="Título" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-        <input required placeholder="Preço" value={formData.price} onChange={e => setFormData({...formData, price: maskPrice(e.target.value)})} />
+        <input required placeholder="Preço" value={formData.price} onFocus={handlePriceFocus} onBlur={handlePriceBlur} onChange={handlePriceChange} />
         <input required type="number" placeholder="Estoque" value={formData.available_quantity} onChange={e => setFormData({...formData, available_quantity: e.target.value})} />
         <button type="submit">{formData.id ? 'Atualizar' : 'Salvar'}</button>
         {formData.id && <button type="button" onClick={() => setFormData({ id: null, title: '', price: '', available_quantity: '' })}>Cancelar Edição</button>}
@@ -104,8 +134,8 @@ function Dashboard() {
 
       <h2>Meus Anúncios</h2>
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <input placeholder="Preço Mín" value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: maskPrice(e.target.value)})} />
-        <input placeholder="Preço Máx" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: maskPrice(e.target.value)})} />
+        <input placeholder="Preço Mín" value={filters.minPrice} onFocus={handleMinPriceFocus} onBlur={handleMinPriceBlur} onChange={e => setFilters({...filters, minPrice: stripDigits(e.target.value)})} />
+        <input placeholder="Preço Máx" value={filters.maxPrice} onFocus={handleMaxPriceFocus} onBlur={handleMaxPriceBlur} onChange={e => setFilters({...filters, maxPrice: stripDigits(e.target.value)})} />
         <button onClick={fetchAds}>Filtrar</button>
       </div>
 
