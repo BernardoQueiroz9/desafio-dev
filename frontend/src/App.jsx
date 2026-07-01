@@ -4,7 +4,7 @@ import { api } from './api';
 
 function Login() {
   const handleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/login`;
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/login`;
   };
 
   return (
