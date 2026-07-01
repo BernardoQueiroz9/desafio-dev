@@ -100,7 +100,7 @@ function Login() {
           <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', marginBottom: '24px' }}>
             Não tem conta?{' '}
             <button
-              onClick={() => { setTab('register'); setError(''); }}
+              onClick={() => { setTab('register'); setError(''); setEmail(''); setPassword(''); }}
               style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
             >
               Criar uma conta
@@ -211,7 +211,7 @@ function Login() {
             <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', margin: 0 }}>
               Já tem conta?{' '}
               <button
-                onClick={() => { setTab('login'); setError(''); }}
+                onClick={() => { setTab('login'); setError(''); setEmail(''); setPassword(''); setName(''); }}
                 style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
               >
                 Fazer login
