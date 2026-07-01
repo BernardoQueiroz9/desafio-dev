@@ -17,15 +17,14 @@ function Login() {
   );
 }
 
-const stripDigits = (value) => value.replace(/\D/g, '');
-
 const formatPrice = (value) => {
-  const digits = stripDigits(value);
-  if (!digits) return '';
-  const padded = digits.padStart(3, '0');
-  const cents = padded.slice(-2);
-  const reais = padded.slice(0, -2);
-  return reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + cents;
+  if (!value) return '';
+  const cleaned = value.replace(/[^\d,.]/g, '');
+  const noThousandSep = cleaned.replace(/\.(\d{3})/g, '$1');
+  const normalized = noThousandSep.replace(',', '.');
+  const num = parseFloat(normalized);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const unmaskPrice = (masked) => {
@@ -35,10 +34,7 @@ const unmaskPrice = (masked) => {
 
 const toMaskedPrice = (num) => {
   if (num === null || num === undefined || num === '') return '';
-  const fixed = Number(num).toFixed(2);
-  const parts = fixed.split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return parts.join(',');
+  return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 function Dashboard() {
@@ -92,7 +88,7 @@ function Dashboard() {
   };
 
   const handlePriceFocus = () => {
-    setFormData(prev => ({ ...prev, price: stripDigits(prev.price) }));
+    setFormData(prev => ({ ...prev, price: prev.price.replace(/\./g, '') }));
   };
 
   const handlePriceBlur = () => {
@@ -100,11 +96,12 @@ function Dashboard() {
   };
 
   const handlePriceChange = (e) => {
-    setFormData(prev => ({ ...prev, price: stripDigits(e.target.value) }));
+    const cleaned = e.target.value.replace(/[^\d,.]/g, '');
+    setFormData(prev => ({ ...prev, price: cleaned }));
   };
 
   const handleMinPriceFocus = () => {
-    setFilters(prev => ({ ...prev, minPrice: stripDigits(prev.minPrice) }));
+    setFilters(prev => ({ ...prev, minPrice: prev.minPrice.replace(/\./g, '') }));
   };
 
   const handleMinPriceBlur = () => {
@@ -112,7 +109,7 @@ function Dashboard() {
   };
 
   const handleMaxPriceFocus = () => {
-    setFilters(prev => ({ ...prev, maxPrice: stripDigits(prev.maxPrice) }));
+    setFilters(prev => ({ ...prev, maxPrice: prev.maxPrice.replace(/\./g, '') }));
   };
 
   const handleMaxPriceBlur = () => {
@@ -134,8 +131,8 @@ function Dashboard() {
 
       <h2>Meus Anúncios</h2>
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <input placeholder="Preço Mín" value={filters.minPrice} onFocus={handleMinPriceFocus} onBlur={handleMinPriceBlur} onChange={e => setFilters({...filters, minPrice: stripDigits(e.target.value)})} />
-        <input placeholder="Preço Máx" value={filters.maxPrice} onFocus={handleMaxPriceFocus} onBlur={handleMaxPriceBlur} onChange={e => setFilters({...filters, maxPrice: stripDigits(e.target.value)})} />
+        <input placeholder="Preço Mín" value={filters.minPrice} onFocus={handleMinPriceFocus} onBlur={handleMinPriceBlur} onChange={e => setFilters({...filters, minPrice: e.target.value.replace(/[^\d,.]/g, '')})} />
+        <input placeholder="Preço Máx" value={filters.maxPrice} onFocus={handleMaxPriceFocus} onBlur={handleMaxPriceBlur} onChange={e => setFilters({...filters, maxPrice: e.target.value.replace(/[^\d,.]/g, '')})} />
         <button onClick={fetchAds}>Filtrar</button>
       </div>
 
