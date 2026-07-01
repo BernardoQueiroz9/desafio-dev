@@ -32,6 +32,18 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (tab === 'register') {
+      if (name.trim().length < 3) {
+        setError('Nome deve ter no mínimo 3 caracteres');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Senha deve ter no mínimo 6 caracteres');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const route = tab === 'login' ? '/auth/login' : '/auth/register';
@@ -41,7 +53,11 @@ function Login() {
       localStorage.setItem('userName', res.data.name);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro na requisição');
+      if (!err.response) {
+        setError('Servidor indisponível — verifique se o backend está rodando');
+      } else {
+        setError(err.response?.data?.error || 'Erro na requisição');
+      }
     } finally {
       setLoading(false);
     }

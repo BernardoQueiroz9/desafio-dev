@@ -10,6 +10,19 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
+    }
+
+    if (name.length < 3) {
+      return res.status(400).json({ error: 'Nome deve ter no mínimo 3 caracteres' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
+
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) {
       return res.status(409).json({ error: 'Email já cadastrado' });
@@ -19,7 +32,8 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ userId: user._id, name: user.name });
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao cadastrar' });
+    console.error('Erro no register:', error.message);
+    res.status(500).json({ error: 'Erro ao cadastrar: ' + error.message });
   }
 });
 
