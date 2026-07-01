@@ -26,6 +26,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 
   let uri = process.env.MONGO_URI;
+  console.log('MONGO_URI definida:', !!uri, uri ? uri.substring(0, 20) + '...' : 'N/A');
+
   if (uri && !uri.includes('%24')) {
     uri = uri.replace(/:([^@]+)@/, (_, pwd) => ':' + encodeURIComponent(pwd) + '@');
   }
