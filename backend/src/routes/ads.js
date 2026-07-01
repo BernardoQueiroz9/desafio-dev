@@ -23,13 +23,13 @@ const fetchWithRetry = async (url, data, method = 'post', retries = 3) => {
 
 router.post('/', checkAuth, async (req, res) => {
   try {
-    const { title, price, available_quantity } = req.body;
+    const { title, price, available_quantity, image } = req.body;
 
     const mlResponse = await fetchWithRetry(`${process.env.BACKEND_URL}/mock/items`, req.body);
     
     const newAd = new Ad({
       ml_id: mlResponse.data.id,
-      title, price, available_quantity,
+      title, price, available_quantity, image,
       user: req.userId
     });
     
@@ -60,7 +60,7 @@ router.get('/', checkAuth, async (req, res) => {
 
 router.put('/:id', checkAuth, async (req, res) => {
   try {
-    const { title, price, available_quantity } = req.body;
+    const { title, price, available_quantity, image } = req.body;
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
 
     if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
@@ -70,6 +70,7 @@ router.put('/:id', checkAuth, async (req, res) => {
     ad.title = title;
     ad.price = price;
     ad.available_quantity = available_quantity;
+    if (image !== undefined) ad.image = image;
     await ad.save(); 
 
     res.json(ad);
