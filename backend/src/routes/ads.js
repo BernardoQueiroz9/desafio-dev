@@ -58,6 +58,41 @@ router.get('/', checkAuth, async (req, res) => {
   }
 });
 
+router.post('/sync', checkAuth, async (req, res) => {
+  try {
+    const ads = await Ad.find({ user: req.userId });
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+
+    const results = await Promise.all(ads.map(async (ad) => {
+      try {
+        const mlRes = await axios.get(`${BACKEND_URL}/mock/items/${ad.ml_id}/state`, {
+          params: { title: ad.title, price: ad.price, available_quantity: ad.available_quantity },
+          timeout: 5000,
+        });
+        const marketplace = mlRes.data;
+        const diff = {};
+
+        if (marketplace.title !== ad.title) diff.title = { local: ad.title, marketplace: marketplace.title };
+        if (Number(marketplace.price) !== Number(ad.price)) diff.price = { local: ad.price, marketplace: marketplace.price };
+        if (Number(marketplace.available_quantity) !== Number(ad.available_quantity)) {
+          diff.available_quantity = { local: ad.available_quantity, marketplace: marketplace.available_quantity };
+        }
+
+        return Object.keys(diff).length > 0
+          ? { ml_id: ad.ml_id, _id: ad._id, local: ad.toObject(), marketplace, diff }
+          : null;
+      } catch {
+        return null;
+      }
+    }));
+
+    const divergences = results.filter(Boolean);
+    res.json({ divergences, checked: ads.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao sincronizar' });
+  }
+});
+
 router.put('/:id', checkAuth, async (req, res) => {
   try {
     const { title, price, available_quantity, image } = req.body;

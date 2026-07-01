@@ -15,7 +15,7 @@ const styles = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    gap: '12px',
   },
   logo: {
     fontSize: '22px',
@@ -55,6 +55,33 @@ const styles = {
     justifyContent: 'center',
     transition: 'background 0.15s',
   },
+  syncBtn: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    color: '#333',
+    transition: 'background 0.15s',
+    position: 'relative',
+  },
+  syncBadge: {
+    position: 'absolute',
+    top: '2px',
+    right: '2px',
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: 'var(--ml-red)',
+  },
+  userName: {
+    fontSize: '13px',
+    color: '#555',
+    fontWeight: 500,
+    whiteSpace: 'nowrap',
+  },
   logoutBtn: {
     background: 'transparent',
     border: 'none',
@@ -71,9 +98,10 @@ const styles = {
   },
 };
 
-export default function Header({ onSearch, searchValue, onLogout }) {
+export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences }) {
   const [localValue, setLocalValue] = useState(searchValue || '');
   const [hoverLogout, setHoverLogout] = useState(false);
+  const [hoverSync, setHoverSync] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -116,6 +144,31 @@ export default function Header({ onSearch, searchValue, onLogout }) {
             Limpar
           </button>
         )}
+
+        {onSync && (
+          <button
+            style={{
+              ...styles.syncBtn,
+              background: hoverSync ? 'rgba(0,0,0,0.06)' : 'transparent',
+              animation: syncing ? 'spin 1s linear infinite' : 'none',
+            }}
+            onClick={onSync}
+            onMouseEnter={() => setHoverSync(true)}
+            onMouseLeave={() => setHoverSync(false)}
+            disabled={syncing}
+            aria-label="Sincronizar com marketplace"
+            title="Verificar divergências com o marketplace"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            {hasDivergences && <span style={styles.syncBadge} />}
+          </button>
+        )}
+
+        <span style={styles.userName}>{userName}</span>
 
         <button
           onClick={onLogout}

@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
 import Sidebar from './components/Sidebar';
+import SyncPanel from './components/SyncPanel';
 
 const unmaskPrice = (masked) => {
   if (!masked) return '';
@@ -16,8 +17,34 @@ const toMaskedPrice = (num) => {
 };
 
 function Login() {
-  const handleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/login`;
+  const navigate = useNavigate();
+  const [tab, setTab] = useState('login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('userId')) navigate('/dashboard', { replace: true });
+  }, [navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const route = tab === 'login' ? '/auth/login' : '/auth/register';
+      const body = tab === 'login' ? { email, password } : { name, email, password };
+      const res = await api.post(route, body);
+      localStorage.setItem('userId', res.data.userId);
+      localStorage.setItem('userName', res.data.name);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro na requisição');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,54 +55,179 @@ function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--ml-yellow)',
-      gap: '32px',
       padding: '20px',
     }}>
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{
-          fontSize: '48px',
-          fontWeight: 700,
-          color: '#333',
-          letterSpacing: '-1px',
-          marginBottom: '8px',
+      <div style={{
+        background: '#fff',
+        borderRadius: '8px',
+        padding: '40px',
+        width: '100%',
+        maxWidth: '400px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <h1 style={{
+            fontSize: '32px',
+            fontWeight: 700,
+            color: '#333',
+            letterSpacing: '-0.5px',
+            marginBottom: '4px',
+          }}>
+            Desafio<span style={{ color: 'var(--ml-blue)' }}>ML</span>
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--ml-text-tertiary)' }}>
+            {tab === 'login' ? 'Entre com sua conta' : 'Crie sua conta'}
+          </p>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          marginBottom: '24px',
+          borderBottom: '2px solid var(--ml-border)',
         }}>
-          Desafio<span style={{ color: 'var(--ml-blue)' }}>ML</span>
-        </h1>
-        <p style={{ fontSize: '16px', color: 'var(--ml-text-secondary)', marginTop: '8px' }}>
-          Gerencie seus anúncios do Mercado Livre
-        </p>
+          <button
+            onClick={() => { setTab('login'); setError(''); }}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: tab === 'login' ? 'var(--ml-blue)' : 'var(--ml-text-tertiary)',
+              borderBottom: tab === 'login' ? '2px solid var(--ml-blue)' : '2px solid transparent',
+              marginBottom: '-2px',
+              transition: 'color 0.15s',
+            }}
+          >
+            Entrar
+          </button>
+          <button
+            onClick={() => { setTab('register'); setError(''); }}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: tab === 'register' ? 'var(--ml-blue)' : 'var(--ml-text-tertiary)',
+              borderBottom: tab === 'register' ? '2px solid var(--ml-blue)' : '2px solid transparent',
+              marginBottom: '-2px',
+              transition: 'color 0.15s',
+            }}
+          >
+            Cadastrar
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {tab === 'register' && (
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Nome
+              </label>
+              <input
+                required
+                placeholder="Seu nome"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid var(--ml-border)',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
+              />
+            </div>
+          )}
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
+              Email
+            </label>
+            <input
+              required
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid var(--ml-border)',
+                borderRadius: '4px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
+              Senha
+            </label>
+            <input
+              required
+              type="password"
+              placeholder="Sua senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid var(--ml-border)',
+                borderRadius: '4px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
+            />
+          </div>
+
+          {error && (
+            <p style={{ color: 'var(--ml-red)', fontSize: '13px', margin: 0 }}>{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              background: loading ? '#93b8f5' : 'var(--ml-blue)',
+              color: '#fff',
+              border: 'none',
+              padding: '12px',
+              borderRadius: '4px',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: loading ? 'default' : 'pointer',
+              transition: 'background 0.15s',
+              marginTop: '4px',
+            }}
+            onMouseEnter={(e) => { if (!loading) e.target.style.background = 'var(--ml-blue-dark)'; }}
+            onMouseLeave={(e) => { if (!loading) e.target.style.background = 'var(--ml-blue)'; }}
+          >
+            {loading ? 'Aguarde...' : tab === 'login' ? 'Entrar' : 'Criar Conta'}
+          </button>
+        </form>
       </div>
-      <button
-        onClick={handleLogin}
-        style={{
-          background: 'var(--ml-blue)',
-          color: '#fff',
-          border: 'none',
-          padding: '14px 40px',
-          borderRadius: '6px',
-          fontSize: '16px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(52,131,250,0.3)',
-          transition: 'background 0.15s, transform 0.15s',
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = 'var(--ml-blue-dark)';
-          e.target.style.transform = 'translateY(-1px)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = 'var(--ml-blue)';
-          e.target.style.transform = 'translateY(0)';
-        }}
-      >
-        Conectar com Mercado Livre
-      </button>
     </div>
   );
 }
 
 function Dashboard() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,6 +236,19 @@ function Dashboard() {
     id: null, title: '', price: '', available_quantity: '', image: ''
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [syncData, setSyncData] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const userName = localStorage.getItem('userName') || 'Vendedor';
+
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      navigate('/', { replace: true });
+      return;
+    }
+    api.get('/ads').then(res => setAds(res.data)).catch(console.error);
+  }, [navigate]);
 
   const fetchAds = async (f, q) => {
     try {
@@ -101,17 +266,48 @@ function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const userId = searchParams.get('userId');
-    if (userId) {
-      localStorage.setItem('userId', userId);
-      navigate('/dashboard', { replace: true });
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await api.post('/ads/sync');
+      setSyncData(res.data);
+    } catch {
+      alert('Erro ao sincronizar');
+    } finally {
+      setSyncing(false);
     }
-  }, [searchParams, navigate]);
+  };
 
-  useEffect(() => {
-    api.get('/ads').then(res => setAds(res.data)).catch(console.error);
-  }, []);
+  const handleSyncAccept = async (adId, marketplace) => {
+    if (!marketplace) {
+      setSyncData(prev => ({
+        ...prev,
+        divergences: prev.divergences.filter(d => d._id !== adId),
+      }));
+      return;
+    }
+    try {
+      await api.put(`/ads/${adId}`, {
+        title: marketplace.title,
+        price: marketplace.price,
+        available_quantity: marketplace.available_quantity,
+      });
+      setSyncData(prev => ({
+        ...prev,
+        divergences: prev.divergences.filter(d => d._id !== adId),
+      }));
+      fetchAds();
+    } catch {
+      alert('Erro ao atualizar');
+    }
+  };
+
+  const handleSyncAcceptAll = async () => {
+    if (!syncData) return;
+    for (const item of syncData.divergences) {
+      await handleSyncAccept(item._id, item.marketplace);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,6 +335,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
     navigate('/');
   };
 
@@ -156,12 +353,18 @@ function Dashboard() {
     ? ads.filter(ad => ad.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : ads;
 
+  const hasDivergences = syncData && syncData.divergences.length > 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header
         onSearch={handleSearch}
         searchValue={searchQuery}
         onLogout={handleLogout}
+        userName={userName}
+        onSync={handleSync}
+        syncing={syncing}
+        hasDivergences={hasDivergences}
       />
 
       <div style={{
@@ -237,7 +440,7 @@ function Dashboard() {
               </h3>
               <p style={{ fontSize: '14px', maxWidth: '300px' }}>
                 {searchQuery
-                  ? `Tente buscar por um termo diferente ou limpe a busca.`
+                  ? 'Tente buscar por um termo diferente ou limpe a busca.'
                   : 'Crie seu primeiro anúncio usando o formulário ao lado.'}
               </p>
             </div>
@@ -248,9 +451,14 @@ function Dashboard() {
                 color: 'var(--ml-text-tertiary)',
                 marginBottom: '12px',
                 paddingLeft: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}>
-                {filteredAds.length} {filteredAds.length === 1 ? 'resultado' : 'resultados'}
-                {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
+                <span>
+                  {filteredAds.length} {filteredAds.length === 1 ? 'resultado' : 'resultados'}
+                  {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
+                </span>
               </div>
               <div style={{
                 display: 'grid',
@@ -265,6 +473,16 @@ function Dashboard() {
           )}
         </main>
       </div>
+
+      {syncData && (
+        <SyncPanel
+          divergences={syncData.divergences}
+          checked={syncData.checked}
+          onAccept={handleSyncAccept}
+          onAcceptAll={handleSyncAcceptAll}
+          onClose={() => { setSyncData(null); fetchAds(); }}
+        />
+      )}
     </div>
   );
 }

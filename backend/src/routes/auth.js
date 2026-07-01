@@ -1,30 +1,49 @@
 const express = require('express');
-const axios = require('axios');
 const User = require('../models/User');
 const router = express.Router();
 
-router.get('/login', (req, res) => {
-  const redirectUri = `${process.env.BACKEND_URL}/api/auth/callback`;
-  res.redirect(`${process.env.BACKEND_URL}/mock/authorization?redirect_uri=${redirectUri}`);
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
+    }
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) {
+      return res.status(409).json({ error: 'Email já cadastrado' });
+    }
+
+    const user = await User.create({ name, email, password });
+
+    res.status(201).json({ userId: user._id, name: user.name });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao cadastrar' });
+  }
 });
 
-router.get('/callback', async (req, res) => {
-  const { code } = req.query;
+router.post('/login', async (req, res) => {
   try {
-    const mlResponse = await axios.post(`${process.env.BACKEND_URL}/mock/oauth/token`, { code });
-    const { access_token, refresh_token, user_id } = mlResponse.data;
+    const { email, password } = req.body;
 
-    // Salva ou atualiza o usuário no MongoDB
-    let user = await User.findOneAndUpdate(
-      { ml_user_id: user_id },
-      { access_token, refresh_token },
-      { upsert: true, new: true }
-    );
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+    }
 
-    // Redireciona para o frontend passando o ID do usuário (como um token simples de sessão)
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?userId=${user._id}`);
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
+    }
+
+    const match = await user.comparePassword(password);
+    if (!match) {
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
+    }
+
+    res.json({ userId: user._id, name: user.name });
   } catch (error) {
-    res.redirect(`${process.env.FRONTEND_URL}/?error=auth_failed`);
+    res.status(500).json({ error: 'Erro ao fazer login' });
   }
 });
 

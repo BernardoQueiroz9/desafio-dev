@@ -35,4 +35,31 @@ router.put('/items/:id', (req, res) => {
   res.status(200).json({ id: req.params.id, ...req.body });
 });
 
+router.get('/items/:id/state', (req, res) => {
+  const { title, price, available_quantity } = req.query;
+
+  let marketplace = {
+    id: req.params.id,
+    title: title || 'Produto sem título',
+    price: price ? Number(price) : 0,
+    available_quantity: price ? Number(available_quantity) : 0,
+  };
+
+  // 40% de chance de simular divergência no marketplace
+  if (Math.random() < 0.4) {
+    const field = ['title', 'price', 'available_quantity'][Math.floor(Math.random() * 3)];
+    if (field === 'title') {
+      marketplace.title = title + ' (alterado no ML)';
+    } else if (field === 'price') {
+      const variation = Math.floor(Math.random() * 100) + 1;
+      marketplace.price = marketplace.price + (Math.random() < 0.5 ? variation : -variation);
+      if (marketplace.price < 0) marketplace.price = 0;
+    } else {
+      marketplace.available_quantity = Math.max(0, marketplace.available_quantity + Math.floor(Math.random() * 10) - 3);
+    }
+  }
+
+  res.json(marketplace);
+});
+
 module.exports = router;
