@@ -96,48 +96,17 @@ function Login() {
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          marginBottom: '24px',
-          borderBottom: '2px solid var(--ml-border)',
-        }}>
-          <button
-            onClick={() => { setTab('login'); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '10px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: tab === 'login' ? 'var(--ml-blue)' : 'var(--ml-text-tertiary)',
-              borderBottom: tab === 'login' ? '2px solid var(--ml-blue)' : '2px solid transparent',
-              marginBottom: '-2px',
-              transition: 'color 0.15s',
-            }}
-          >
-            Entrar
-          </button>
-          <button
-            onClick={() => { setTab('register'); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '10px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: tab === 'register' ? 'var(--ml-blue)' : 'var(--ml-text-tertiary)',
-              borderBottom: tab === 'register' ? '2px solid var(--ml-blue)' : '2px solid transparent',
-              marginBottom: '-2px',
-              transition: 'color 0.15s',
-            }}
-          >
-            Cadastrar
-          </button>
-        </div>
+        {tab === 'login' && (
+          <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', marginBottom: '24px' }}>
+            Não tem conta?{' '}
+            <button
+              onClick={() => { setTab('register'); setError(''); }}
+              style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
+            >
+              Criar uma conta
+            </button>
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {tab === 'register' && (
@@ -237,6 +206,18 @@ function Login() {
           >
             {loading ? 'Aguarde...' : tab === 'login' ? 'Entrar' : 'Criar Conta'}
           </button>
+
+          {tab === 'register' && (
+            <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', margin: 0 }}>
+              Já tem conta?{' '}
+              <button
+                onClick={() => { setTab('login'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
+              >
+                Fazer login
+              </button>
+            </p>
+          )}
         </form>
       </div>
     </div>
