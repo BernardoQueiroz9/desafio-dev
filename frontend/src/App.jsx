@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from './api';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
@@ -22,6 +22,8 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(() => localStorage.getItem('rememberMe') === 'true');
+  const [emailStatus, setEmailStatus] = useState('idle');
+  const emailTimer = useRef(null);
 
   useEffect(() => {
     if (localStorage.getItem('userId')) navigate('/dashboard', { replace: true });
@@ -33,6 +35,24 @@ function Login() {
       setPassword(localStorage.getItem('savedPassword') || '');
     }
   }, []);
+
+  const checkEmail = (value) => {
+    if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setEmailStatus('idle');
+      return;
+    }
+    setEmailStatus('checking');
+    api.get('/auth/check-email', { params: { email: value } })
+      .then(res => setEmailStatus(res.data.exists ? 'exists' : 'not_found'))
+      .catch(() => setEmailStatus('idle'));
+  };
+
+  const handleEmailChange = (e) => {
+    const val = e.target.value;
+    setEmail(val);
+    clearTimeout(emailTimer.current);
+    emailTimer.current = setTimeout(() => checkEmail(val), 500);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -157,19 +177,28 @@ function Login() {
               type="email"
               placeholder="seu@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                border: '1px solid var(--ml-border)',
+                border: `1px solid ${emailStatus === 'not_found' && tab === 'login' ? 'var(--ml-red)' : emailStatus === 'exists' && tab === 'register' ? 'var(--ml-red)' : emailStatus === 'exists' && tab === 'login' ? 'var(--ml-green)' : 'var(--ml-border)'}`,
                 borderRadius: '4px',
                 fontSize: '14px',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
               onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
+              onBlur={(e) => { e.target.style.borderColor = emailStatus === 'not_found' && tab === 'login' ? 'var(--ml-red)' : emailStatus === 'exists' && tab === 'register' ? 'var(--ml-red)' : 'var(--ml-border)'; }}
             />
+            {emailStatus === 'checking' && (
+              <span style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginTop: '4px', display: 'block' }}>Verificando...</span>
+            )}
+            {emailStatus === 'not_found' && tab === 'login' && (
+              <span style={{ fontSize: '12px', color: 'var(--ml-red)', marginTop: '4px', display: 'block' }}>Este endereço de e-mail não existe</span>
+            )}
+            {emailStatus === 'exists' && tab === 'register' && (
+              <span style={{ fontSize: '12px', color: 'var(--ml-red)', marginTop: '4px', display: 'block' }}>Este e-mail já está cadastrado</span>
+            )}
           </div>
 
           <div>
