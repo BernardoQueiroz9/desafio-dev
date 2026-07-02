@@ -418,9 +418,7 @@ function Dashboard() {
       <div style={{
         display: 'flex',
         flex: 1,
-        maxWidth: view === 'grid' ? '1400px' : '100%',
         width: '100%',
-        margin: '0 auto',
         background: 'var(--ml-bg)',
       }}>
         {/* Sidebar only in grid view */}
@@ -457,33 +455,35 @@ function Dashboard() {
         {/* Grid view */}
         {view === 'grid' && (
           <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
-            {ads.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-secondary)', marginBottom: '8px' }}>
-                  {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anúncio publicado'}
-                </h3>
-                <p style={{ fontSize: '14px', maxWidth: '300px' }}>
-                  {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anúncio em "Meus Anúncios".'}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '12px', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>
-                    {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
-                    {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
-                  </span>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+              {ads.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-secondary)', marginBottom: '8px' }}>
+                    {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anúncio publicado'}
+                  </h3>
+                  <p style={{ fontSize: '14px', maxWidth: '300px' }}>
+                    {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anúncio em "Meus Anúncios".'}
+                  </p>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}>
-                  {ads.map(ad => (
-                    <ProductCard key={ad._id} ad={ad} />
-                  ))}
-                </div>
-              </>
-            )}
+              ) : (
+                <>
+                  <div style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '12px', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>
+                      {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
+                      {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}>
+                    {ads.map(ad => (
+                      <ProductCard key={ad._id} ad={ad} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </main>
         )}
 
