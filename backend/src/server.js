@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const mockRoutes = require('./routes/mockMl');
 const authRoutes = require('./routes/auth');
@@ -22,18 +23,39 @@ app.use('/api/ads', adsRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-
+async function start() {
   let uri = process.env.MONGO_URI;
 
-  if (uri && !uri.includes('%24')) {
-    const url = new URL(uri);
-    url.password = encodeURIComponent(url.password);
-    uri = url.toString();
+  if (uri) {
+    if (!uri.includes('%24')) {
+      try {
+        const url = new URL(uri);
+        url.password = encodeURIComponent(url.password);
+        uri = url.toString();
+      } catch {}
+    }
+    try {
+      await mongoose.connect(uri);
+      console.log('✅ MongoDB Atlas Conectado');
+    } catch (err) {
+      console.log('⚠️  Atlas indisponível (' + err.message + '), usando MongoDB local...');
+      uri = null;
+    }
   }
 
-  mongoose.connect(uri || '')
-    .then(() => console.log('MongoDB Conectado'))
-    .catch(err => console.error('Erro no MongoDB:', err.message));
+  if (!uri) {
+    const mongoServer = await MongoMemoryServer.create();
+    uri = mongoServer.getUri();
+    await mongoose.connect(uri);
+    console.log('✅ MongoDB Local (em memória) Conectado');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  });
+}
+
+start().catch(err => {
+  console.error('Falha ao iniciar:', err);
+  process.exit(1);
 });
