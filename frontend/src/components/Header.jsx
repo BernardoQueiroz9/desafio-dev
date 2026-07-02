@@ -24,6 +24,10 @@ const styles = {
     textDecoration: 'none',
     whiteSpace: 'nowrap',
     letterSpacing: '-0.5px',
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    fontFamily: 'inherit',
   },
   logoAccent: {
     color: 'var(--ml-blue)',
@@ -82,6 +86,18 @@ const styles = {
     fontWeight: 500,
     whiteSpace: 'nowrap',
   },
+  navBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#333',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 600,
+    padding: '6px 12px',
+    borderRadius: '4px',
+    whiteSpace: 'nowrap',
+    transition: 'background 0.15s',
+  },
   logoutBtn: {
     background: 'transparent',
     border: 'none',
@@ -93,15 +109,13 @@ const styles = {
     borderRadius: '4px',
     whiteSpace: 'nowrap',
   },
-  logoutBtnHover: {
-    background: 'rgba(0,0,0,0.06)',
-  },
 };
 
-export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences }) {
+export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView, onViewChange }) {
   const [localValue, setLocalValue] = useState(searchValue || '');
   const [hoverLogout, setHoverLogout] = useState(false);
   const [hoverSync, setHoverSync] = useState(false);
+  const [hoverNav, setHoverNav] = useState({});
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -113,39 +127,52 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
     if (onSearch) onSearch('');
   };
 
+  const isGridView = currentView === 'grid';
+
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
-        <a href="/dashboard" style={styles.logo}>
+        <button onClick={() => onViewChange('grid')} style={styles.logo} title="Ver anúncios">
           Desafio<span style={styles.logoAccent}>ML</span>
-        </a>
+        </button>
 
-        <form onSubmit={handleSubmit} style={styles.searchWrapper}>
-          <input
-            style={styles.searchInput}
-            placeholder="Buscar produtos..."
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            aria-label="Buscar produtos"
-          />
-          <button type="submit" style={styles.searchButton} aria-label="Buscar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-        </form>
+        {isGridView && (
+          <form onSubmit={handleSubmit} style={styles.searchWrapper}>
+            <input
+              style={styles.searchInput}
+              placeholder="Buscar produtos..."
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
+              aria-label="Buscar produtos"
+            />
+            <button type="submit" style={styles.searchButton} aria-label="Buscar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          </form>
+        )}
 
-        {localValue && (
-          <button
-            onClick={handleClear}
-            style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)' }}
-          >
+        {isGridView && localValue && (
+          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)' }}>
             Limpar
           </button>
         )}
 
-        {onSync && (
+        <button
+          onClick={() => onViewChange(isGridView ? 'my-ads' : 'grid')}
+          style={{
+            ...styles.navBtn,
+            background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
+          }}
+          onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
+          onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
+        >
+          {isGridView ? 'Meus Anúncios' : '← Voltar'}
+        </button>
+
+        {isGridView && onSync && (
           <button
             style={{
               ...styles.syncBtn,
@@ -174,7 +201,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           onClick={onLogout}
           style={{
             ...styles.logoutBtn,
-            background: hoverLogout ? styles.logoutBtnHover.background : 'transparent',
+            background: hoverLogout ? 'rgba(0,0,0,0.06)' : 'transparent',
           }}
           onMouseEnter={() => setHoverLogout(true)}
           onMouseLeave={() => setHoverLogout(false)}
