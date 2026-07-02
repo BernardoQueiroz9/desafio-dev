@@ -1,6 +1,8 @@
 const express = require('express');
 const axios = require('axios');
 const Ad = require('../models/Ad');
+const User = require('../models/User');
+const { sendNewAdEmail } = require('../services/email');
 const router = express.Router();
 
 const checkAuth = (req, res, next) => {
@@ -36,6 +38,11 @@ router.post('/', checkAuth, async (req, res) => {
     });
     
     await newAd.save();
+
+    User.findById(req.userId).then(user => {
+      if (user) sendNewAdEmail(user.email, user.name, newAd);
+    }).catch(() => {});
+
     res.status(201).json(newAd);
   } catch (error) {
     console.error('Erro ao criar anúncio:', error.message);

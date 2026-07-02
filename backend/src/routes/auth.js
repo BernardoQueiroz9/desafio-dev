@@ -1,6 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
-const { sendLoginNotification } = require('../services/email');
+const { sendWelcomeEmail } = require('../services/email');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
@@ -31,6 +31,8 @@ router.post('/register', async (req, res) => {
 
     const user = await User.create({ name, email, password });
 
+    sendWelcomeEmail(user.email, user.name);
+
     res.status(201).json({ userId: user._id, name: user.name });
   } catch (error) {
     console.error('Erro no register:', error.message);
@@ -55,10 +57,6 @@ router.post('/login', async (req, res) => {
     if (!match) {
       return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
-
-    sendLoginNotification(user.email, user.name).catch(err => {
-      console.error('Erro ao enviar email:', err.message);
-    });
 
     res.json({ userId: user._id, name: user.name });
   } catch (error) {
