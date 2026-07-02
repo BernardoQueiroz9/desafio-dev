@@ -50,6 +50,13 @@ async function start() {
     console.log('MongoDB Local (em memoria) Conectado');
   }
 
+  try {
+    await mongoose.connection.collection('users').dropIndex('email_1');
+    console.log('Índice email_1 removido da coleção users');
+  } catch {
+    // índice já não existe, segue o jogo
+  }
+
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
   });
