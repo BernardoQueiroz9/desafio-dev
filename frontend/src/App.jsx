@@ -24,10 +24,20 @@ function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(() => localStorage.getItem('rememberMe') === 'true');
 
   useEffect(() => {
     if (localStorage.getItem('userId')) navigate('/dashboard', { replace: true });
   }, [navigate]);
+
+  useEffect(() => {
+    if (remember) {
+      const savedEmail = localStorage.getItem('savedEmail') || '';
+      const savedPassword = localStorage.getItem('savedPassword') || '';
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+    }
+  }, [remember]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +61,15 @@ function Login() {
       const res = await api.post(route, body);
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('userName', res.data.name);
+      if (remember) {
+        localStorage.setItem('savedEmail', email);
+        localStorage.setItem('savedPassword', password);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('savedEmail');
+        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('rememberMe');
+      }
       navigate('/dashboard', { replace: true });
     } catch (err) {
       if (!err.response) {
@@ -182,6 +201,21 @@ function Login() {
             />
           </div>
 
+          {tab === 'login' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--ml-text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+              <input type="checkbox" checked={remember} onChange={(e) => {
+                const val = e.target.checked;
+                setRemember(val);
+                if (!val) {
+                  localStorage.removeItem('savedEmail');
+                  localStorage.removeItem('savedPassword');
+                  localStorage.removeItem('rememberMe');
+                }
+              }} style={{ accentColor: 'var(--ml-blue)', cursor: 'pointer' }} />
+              Lembrar de mim
+            </label>
+          )}
+
           {error && (
             <p style={{ color: 'var(--ml-red)', fontSize: '13px', margin: 0 }}>{error}</p>
           )}
@@ -211,7 +245,7 @@ function Login() {
             <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', margin: 0 }}>
               Já tem conta?{' '}
               <button
-                onClick={() => { setTab('login'); setError(''); setEmail(''); setPassword(''); setName(''); }}
+                onClick={() => { setTab('login'); setError(''); setEmail(remember ? localStorage.getItem('savedEmail') || '' : ''); setPassword(remember ? localStorage.getItem('savedPassword') || '' : ''); setName(''); }}
                 style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
               >
                 Fazer login
@@ -334,6 +368,9 @@ function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
+    localStorage.removeItem('savedEmail');
+    localStorage.removeItem('savedPassword');
+    localStorage.removeItem('rememberMe');
     navigate('/');
   };
 
