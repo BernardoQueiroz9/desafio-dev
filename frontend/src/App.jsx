@@ -5,6 +5,8 @@ import Header from './components/Header';
 import ProductCard from './components/ProductCard';
 import Sidebar from './components/Sidebar';
 import SyncPanel from './components/SyncPanel';
+import AdFormPage from './components/AdFormPage';
+import MyAdsPage from './components/MyAdsPage';
 
 const unmaskPrice = (masked) => {
   if (!masked) return '';
@@ -256,15 +258,6 @@ function Login() {
   );
 }
 
-// ─── Colors ──────────────────────────────────────────────────────
-const colors = {
-  blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
-  green: '#00A650', greenLight: '#E7F4E8',
-  text: '#333', textSec: '#666', textTer: '#999',
-  border: '#E0E0E0', bgCard: '#FFF', bgBody: '#FAFAFA',
-  red: '#FF4B4B',
-};
-
 function Dashboard() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
@@ -410,237 +403,6 @@ function Dashboard() {
 
   const hasDivergences = syncData && syncData.divergences.length > 0;
 
-  // ─── Shared styles ──────────────────────────────────────────
-  const input = (field) => ({
-    width: '100%', padding: '0', border: 'none', fontSize: '14px', color: colors.text,
-    outline: 'none', background: 'transparent', boxSizing: 'border-box', fontFamily: 'inherit',
-  });
-
-  // ─── Full-page: Ad form ─────────────────────────────────────
-  function AdFormPage() {
-    const [focused, setFocused] = useState(null);
-
-    const handlePriceChange = (e) => {
-      const cleaned = e.target.value.replace(/[^\d,.]/g, '');
-      setFormData(prev => ({ ...prev, price: cleaned }));
-    };
-    const handlePriceBlur = () => {
-      setFocused(null);
-      setFormData(prev => ({ ...prev, price: prev.price ? formatPrice(prev.price.replace(/\./g, '').replace(',', '.')) : '' }));
-    };
-    const handlePriceFocus = () => {
-      setFocused('price');
-      setFormData(prev => ({ ...prev, price: prev.price.replace(/\./g, '') }));
-    };
-
-    const fieldCard = (child, label) => (
-      <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
-        {label && <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{label}</p>}
-        {child}
-      </div>
-    );
-
-    const [preview, setPreview] = useState(formData.image || '');
-    const [imgTab, setImgTab] = useState('url');
-    const fileRef = useRef(null);
-
-    const handleFile = (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target.result;
-        setPreview(dataUrl);
-        setFormData(prev => ({ ...prev, image: dataUrl }));
-      };
-      reader.readAsDataURL(file);
-    };
-
-    return (
-      <div style={{ padding: '0', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: 0 }}>
-            {formData.id ? 'Editar Anúncio' : 'Novo Anúncio'}
-          </h2>
-          <button onClick={() => { resetForm(); setView('my-ads'); }}
-            style={{ padding: '8px 16px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: '#FFF', cursor: 'pointer', fontSize: '13px', color: colors.textSec }}
-          >Voltar</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {fieldCard(
-            <div>
-              {preview ? (
-                <img src={preview} alt="" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', background: colors.bgBody, marginBottom: '8px' }}
-                  onError={(e) => { e.target.style.display = 'none'; }} />
-              ) : (
-                <div style={{ width: '100%', height: '160px', border: `2px dashed ${colors.border}`, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: colors.textTer, background: colors.bgBody, marginBottom: '8px' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.textTer} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                  </svg>
-                  Imagem do produto
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {['url', 'file'].map(t => (
-                  <button key={t} type="button" onClick={() => { setImgTab(t); if (t === 'file') fileRef.current?.click(); }}
-                    style={{ flex: 1, padding: '7px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${imgTab === t ? colors.blue : colors.border}`, background: imgTab === t ? colors.blueLight : '#FFF', color: imgTab === t ? colors.blue : colors.textSec }}
-                  >{t === 'url' ? 'URL' : 'Arquivo'}</button>
-                ))}
-              </div>
-              {imgTab === 'url' && (
-                <input placeholder="https://..." value={preview}
-                  onChange={(e) => { setPreview(e.target.value); setFormData(prev => ({ ...prev, image: e.target.value })); }}
-                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${colors.border}`, borderRadius: '4px', fontSize: '13px', outline: 'none', marginTop: '6px', boxSizing: 'border-box' }}
-                  onFocus={(e) => { e.target.style.borderColor = colors.blue; }}
-                  onBlur={(e) => { e.target.style.borderColor = colors.border; }}
-                />
-              )}
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-            </div>,
-            'Imagem'
-          )}
-
-          {fieldCard(
-            <div>
-              <input required placeholder="Ex: iPhone 14 Pro Max 128GB" value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                style={input('title')}
-                onFocus={() => setFocused('title')} onBlur={() => setFocused(null)} />
-              <div style={{ height: '2px', background: focused === 'title' ? colors.blue : 'transparent', borderRadius: '1px', marginTop: '4px', transition: 'background 0.15s' }} />
-            </div>,
-            'Título'
-          )}
-
-          <div style={{ display: 'flex', gap: '14px' }}>
-            <div style={{ flex: 1, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Preço</p>
-              <input required placeholder="R$ 4.999,00" value={formData.price}
-                onFocus={handlePriceFocus} onBlur={handlePriceBlur} onChange={handlePriceChange}
-                style={input('price')} />
-              <div style={{ height: '2px', background: focused === 'price' ? colors.blue : 'transparent', borderRadius: '1px', marginTop: '4px', transition: 'background 0.15s' }} />
-            </div>
-            <div style={{ flex: 1, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Estoque</p>
-              <input required type="number" min="0" placeholder="10" value={formData.available_quantity}
-                onChange={(e) => setFormData({ ...formData, available_quantity: e.target.value })}
-                style={input('qty')}
-                onFocus={() => setFocused('qty')} onBlur={() => setFocused(null)} />
-              <div style={{ height: '2px', background: focused === 'qty' ? colors.blue : 'transparent', borderRadius: '1px', marginTop: '4px', transition: 'background 0.15s' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" style={{
-              flex: 1, padding: '13px', borderRadius: '6px', border: 'none',
-              background: colors.blue, color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s', marginTop: '4px',
-            }}
-              onMouseEnter={(e) => { e.target.style.background = colors.blueDark; }}
-              onMouseLeave={(e) => { e.target.style.background = colors.blue; }}
-            >{formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio'}</button>
-
-            <button type="button" onClick={() => { resetForm(); setView('my-ads'); }}
-              style={{ padding: '13px 20px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: '#FFF', color: colors.textSec, fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
-            >Cancelar</button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  // ─── Full-page: My Ads ──────────────────────────────────────
-  function MyAdsPage() {
-    const [myAds, setMyAds] = useState([]);
-    const [loadingAds, setLoadingAds] = useState(true);
-
-    const fetchMyAds = async () => {
-      setLoadingAds(true);
-      try {
-        const res = await api.get('/ads');
-        setMyAds(res.data);
-      } catch { /* ignore */ } finally {
-        setLoadingAds(false);
-      }
-    };
-
-    useEffect(() => { fetchMyAds(); }, []);
-
-    const handleDelete = async (id) => {
-      if (!window.confirm('Tem certeza que deseja excluir este anúncio?')) return;
-      try {
-        await api.delete(`/ads/${id}`);
-        fetchMyAds();
-        fetchAds();
-      } catch {
-        alert('Erro ao excluir');
-      }
-    };
-
-    return (
-      <div style={{ padding: '0', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div>
-            <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Meus Anúncios</h2>
-            <p style={{ fontSize: '13px', color: colors.textTer, margin: 0 }}>{myAds.length} anúncio{myAds.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button onClick={() => { resetForm(); setView('form'); }}
-            style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: colors.blue, color: '#FFF', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onMouseEnter={(e) => { e.target.style.background = colors.blueDark; }}
-            onMouseLeave={(e) => { e.target.style.background = colors.blue; }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Novo Anúncio
-          </button>
-        </div>
-
-        {loadingAds ? (
-          <p style={{ textAlign: 'center', color: colors.textTer, padding: '40px' }}>Carregando...</p>
-        ) : myAds.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: colors.textTer }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: colors.textSec, marginBottom: '4px' }}>Nenhum anúncio ainda</p>
-            <p style={{ fontSize: '13px' }}>Clique em "Novo Anúncio" para criar o primeiro.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {myAds.map(ad => (
-              <div key={ad._id} style={{
-                display: 'flex', gap: '14px', padding: '14px',
-                border: `1px solid ${colors.border}`, borderRadius: '6px',
-                background: colors.bgCard, alignItems: 'center',
-              }}>
-                <div style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: colors.bgBody, flexShrink: 0 }}>
-                  <img src={ad.image || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
-                    onError={(e) => { e.target.style.display = 'none'; }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '2px' }}>{ad.title}</p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>
-                    {(ad.price != null ? Number(ad.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '')}
-                  </p>
-                  <p style={{ fontSize: '12px', color: colors.textTer }}>Estoque: {ad.available_quantity}</p>
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => handleEditAd(ad)}
-                    style={{ padding: '8px 14px', borderRadius: '4px', border: `1px solid ${colors.blue}`, background: '#FFF', color: colors.blue, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                    onMouseEnter={(e) => { e.target.style.background = colors.blueLight; }}
-                    onMouseLeave={(e) => { e.target.style.background = '#FFF'; }}
-                  >Editar</button>
-                  <button onClick={() => handleDelete(ad._id)}
-                    style={{ padding: '8px 14px', borderRadius: '4px', border: `1px solid ${colors.red}55`, background: '#FFF', color: colors.red, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                    onMouseEnter={(e) => { e.target.style.background = '#FFF0F0'; }}
-                    onMouseLeave={(e) => { e.target.style.background = '#FFF'; }}
-                  >Excluir</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // ─── Main render ────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -732,7 +494,7 @@ function Dashboard() {
         {view === 'my-ads' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <MyAdsPage />
+              <MyAdsPage onEdit={handleEditAd} onNew={() => { resetForm(); setView('form'); }} fetchAds={fetchAds} />
             </div>
           </div>
         )}
@@ -741,7 +503,7 @@ function Dashboard() {
         {view === 'form' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <AdFormPage />
+              <AdFormPage formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onCancel={resetForm} onBack={() => setView('my-ads')} />
             </div>
           </div>
         )}
