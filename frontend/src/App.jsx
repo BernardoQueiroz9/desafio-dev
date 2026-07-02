@@ -31,13 +31,11 @@ function Login() {
   }, [navigate]);
 
   useEffect(() => {
-    if (remember) {
-      const savedEmail = localStorage.getItem('savedEmail') || '';
-      const savedPassword = localStorage.getItem('savedPassword') || '';
-      setEmail(savedEmail);
-      setPassword(savedPassword);
+    if (localStorage.getItem('rememberMe') === 'true') {
+      setEmail(localStorage.getItem('savedEmail') || '');
+      setPassword(localStorage.getItem('savedPassword') || '');
     }
-  }, [remember]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
