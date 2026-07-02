@@ -1,8 +1,6 @@
 # Desafio ML — Gerenciamento de Anúncios
 
-Sistema full-stack para criação, listagem, edição e sincronização de anúncios, inspirado no Mercado Livre.
-
-> **Nota:** A integração com a API real do Mercado Livre foi substituída por rotas simuladas (`/mock/items`), pois a conta de desenvolvedor foi suspensa ao tentar autenticar no Mercado Livre Developers. Todo o fluxo de criação, edição e sincronização funciona com dados mockados.
+Sistema full-stack para criação, listagem, edição e sincronização de anúncios no Mercado Livre.
 
 ## Links de produção
 
@@ -13,31 +11,23 @@ Sistema full-stack para criação, listagem, edição e sincronização de anún
 
 - **Frontend:** React (Vite), JavaScript, CSS
 - **Backend:** Node.js, Express, MongoDB (Atlas / mongodb-memory-server)
+- **Autenticação:** OAuth 2.0 via Mercado Livre + JWT
 - **Deploy:** Vercel (frontend), Render (backend)
 
-## Como rodar localmente
+## Pré-requisitos
 
-Pré-requisito: Node.js 18+
+1. Node.js 18+
+2. Conta de desenvolvedor no Mercado Livre
 
-```bash
-# Clone o repositório
-git clone https://github.com/BernardoQueiroz9/desafio-dev.git
-cd desafio-dev
+## Configuração do Mercado Livre
 
-# Backend
-cd backend
-npm install
-# (opcional) Crie um arquivo .env com MONGO_URI para usar Atlas;
-# Sem MONGO_URI, o banco em memória (mongodb-memory-server) é usado automaticamente
-npm run dev
-
-# Frontend (em outro terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3000`.
+1. Acesse o [DevCenter do Mercado Livre](https://developers.mercadolivre.com.br/devcenter/)
+2. Crie uma nova aplicação com:
+   - **Nome:** DesafioML
+   - **Redirect URI:**
+     - `https://desafio-dev-api.onrender.com/api/auth/ml/callback`
+   - **Scopes:** Leitura, Escrita, Offline Access
+3. Anote o **Client ID** e **Client Secret**
 
 ## Variáveis de ambiente
 
@@ -49,23 +39,57 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 | `MONGO_URI` | String de conexão MongoDB Atlas | (usa mongodb-memory-server) |
 | `FRONTEND_URL` | Origem permitida no CORS | `http://localhost:5173` |
 | `BACKEND_URL` | URL base do próprio backend | `http://localhost:3000` |
+| `ML_CLIENT_ID` | Client ID da aplicação no Mercado Livre | (obrigatório) |
+| `ML_CLIENT_SECRET` | Secret Key da aplicação no Mercado Livre | (obrigatório) |
+| `ML_REDIRECT_URI` | URL de callback do OAuth | `http://localhost:3000/api/auth/ml/callback` |
+| `ML_SITE_ID` | Site do Mercado Livre (MLB = Brasil) | `MLB` |
+| `JWT_SECRET` | Chave secreta para tokens JWT | (obrigatório) |
+
 ### Frontend (`frontend/.env`)
 
 | Variável | Descrição | Padrão |
 |---|---|---|
 | `VITE_API_URL` | URL base da API | `http://localhost:3000/api` |
 
+## Como rodar localmente
+
+```bash
+# Clone o repositorio
+git clone https://github.com/BernardoQueiroz9/desafio-dev.git
+cd desafio-dev
+
+# Backend
+cd backend
+npm install
+# Crie o arquivo backend/.env com as variaveis acima
+npm start
+
+# Frontend (em outro terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3000`.
+
+## Fluxo de autenticação
+
+1. O usuario clica em "Entrar com Mercado Livre" na tela de login
+2. E redirecionado para o Mercado Livre para autorizar o aplicativo
+3. Apos autorizar, e redirecionado de volta para a aplicacao
+4. O backend troca o codigo de autorizacao por um access token
+5. Um token JWT e gerado e armazenado no frontend para as requisicoes
+
 ## Funcionalidades
 
-- Autenticação de vendedor (cadastro/login com email e senha)
-- CRUD de anúncios (criar, listar, editar, excluir)
-- Upload de imagem com drag-and-drop e compressão client-side
-- Busca por título com filtro de preço (slider + campos manuais)
+- Autenticacao via OAuth do Mercado Livre
+- CRUD de anuncios (criar, listar, editar, excluir) com publicacao direta no ML
+- Upload de imagem com drag-and-drop e compressao client-side
+- Seletor hierarquico de categorias do Mercado Livre
+- Busca por titulo com filtro de preco
 - Grade de produtos com "Anunciado por: nome do vendedor"
-- Página "Meus Anúncios" com edição e exclusão
-- Sincronização com marketplace simulado (detecção de divergências)
-- Sidebar colapsável
-- "Lembrar de mim" no login
+- Pagina "Meus Anuncios" com edicao e exclusao
+- Sincronizacao com marketplace (deteccao de divergencias)
 
 ## Estrutura do projeto
 
@@ -73,16 +97,17 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 desafio-dev/
 ├── backend/
 │   ├── src/
-│   │   ├── models/        # Mongoose schemas (User, Ad)
-│   │   ├── routes/        # Express routes (auth, ads, mock)
-│   │   └── server.js      # Configuração do servidor
+│   │   ├── models/          # Mongoose schemas (User, Ad)
+│   │   ├── routes/          # Express routes (auth, ads, categories)
+│   │   ├── services/        # Integracao com API do Mercado Livre
+│   │   └── server.js        # Configuracao do servidor
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── components/    # Componentes React
-│   │   ├── api.js         # Axios instance
-│   │   ├── App.jsx        # Rotas e lógica principal
-│   │   └── main.jsx       # Entry point
+│   │   ├── components/      # Componentes React
+│   │   ├── api.js           # Axios instance com JWT
+│   │   ├── App.jsx          # Rotas e logica principal
+│   │   └── main.jsx         # Entry point
 │   └── package.json
 └── README.md
 ```

@@ -1,19 +1,16 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true },
+  email: { type: String, default: '' },
+  ml_user_id: { type: String, required: true, unique: true },
+  ml_access_token: { type: String, required: true },
+  ml_refresh_token: { type: String, required: true },
+  ml_token_expires_at: { type: Date, required: true },
 }, { timestamps: true });
 
-UserSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
-  this.password = await bcrypt.hash(this.password, 10);
-});
-
-UserSchema.methods.comparePassword = function (candidate) {
-  return bcrypt.compare(candidate, this.password);
+UserSchema.methods.isTokenExpired = function () {
+  return Date.now() >= this.ml_token_expires_at.getTime();
 };
 
 module.exports = mongoose.model('User', UserSchema);

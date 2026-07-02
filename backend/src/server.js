@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
-const mockRoutes = require('./routes/mockMl');
-const authRoutes = require('./routes/auth');
+const { router: authRoutes } = require('./routes/auth');
 const adsRoutes = require('./routes/ads');
 
 const app = express();
@@ -17,9 +16,10 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
 
-app.use('/mock', mockRoutes); 
+const categoriesRoutes = require('./routes/categories');
 app.use('/api/auth', authRoutes);
 app.use('/api/ads', adsRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 const PORT = process.env.PORT || 3000;
 
@@ -36,9 +36,9 @@ async function start() {
     }
     try {
       await mongoose.connect(uri);
-      console.log('✅ MongoDB Atlas Conectado');
+      console.log('MongoDB Atlas Conectado');
     } catch (err) {
-      console.log('⚠️  Atlas indisponível (' + err.message + '), usando MongoDB local...');
+      console.log('Atlas indisponivel (' + err.message + '), usando MongoDB local...');
       uri = null;
     }
   }
@@ -47,16 +47,11 @@ async function start() {
     const mongoServer = await MongoMemoryServer.create();
     uri = mongoServer.getUri();
     await mongoose.connect(uri);
-    console.log('✅ MongoDB Local (em memória) Conectado');
+    console.log('MongoDB Local (em memoria) Conectado');
   }
 
-  try {
-    await mongoose.connection.db.collection('users').dropIndex('ml_user_id_1');
-    console.log('🧹 Índice obsoleto ml_user_id_1 removido');
-  } catch (_) {}
-
   app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
   });
 }
 

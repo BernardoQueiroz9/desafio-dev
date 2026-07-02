@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import CategoryPicker from './CategoryPicker';
 
 const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
@@ -211,7 +212,15 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
               onFocus={() => setFocused('title')} onBlur={() => setFocused(null)} />
             <div style={{ height: '2px', background: focused === 'title' ? colors.blue : 'transparent', borderRadius: '1px', marginTop: '4px', transition: 'background 0.15s' }} />
           </div>,
-          'Título do anúncio'
+          'Titulo do anúncio'
+        )}
+
+        {fieldCard(
+          <CategoryPicker
+            value={formData.category_id}
+            onChange={(catId) => setFormData({ ...formData, category_id: catId })}
+          />,
+          'Categoria'
         )}
 
         <div className="form-row" style={{ display: 'flex', gap: '14px' }}>

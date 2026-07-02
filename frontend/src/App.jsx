@@ -9,6 +9,8 @@ import AdFormPage from './components/AdFormPage';
 import MyAdsPage from './components/MyAdsPage';
 import ProductDetailPage from './components/ProductDetailPage';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 const unmaskPrice = (masked) => {
   if (!masked) return '';
   return parseFloat(masked.replace(/\./g, '').replace(',', '.'));
@@ -27,66 +29,34 @@ function SkeletonCard() {
 
 function Login() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('login');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const location = useLocation();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [remember, setRemember] = useState(() => localStorage.getItem('rememberMe') === 'true');
 
   useEffect(() => {
-    if (localStorage.getItem('userId')) navigate('/dashboard', { replace: true });
-  }, [navigate]);
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const userId = params.get('userId');
+    const userName = params.get('userName');
 
-  useEffect(() => {
-    if (localStorage.getItem('rememberMe') === 'true') {
-      setEmail(localStorage.getItem('savedEmail') || '');
-      setPassword(localStorage.getItem('savedPassword') || '');
-    }
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (tab === 'register') {
-      if (name.trim().length < 3) {
-        setError('Nome deve ter no mínimo 3 caracteres');
-        return;
-      }
-      if (password.length < 6) {
-        setError('Senha deve ter no mínimo 6 caracteres');
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
-      const route = tab === 'login' ? '/auth/login' : '/auth/register';
-      const body = tab === 'login' ? { email, password } : { name, email, password };
-      const res = await api.post(route, body);
-      localStorage.setItem('userId', res.data.userId);
-      localStorage.setItem('userName', res.data.name);
-      if (remember) {
-        localStorage.setItem('savedEmail', email);
-        localStorage.setItem('savedPassword', password);
-        localStorage.setItem('rememberMe', 'true');
-      } else {
-        localStorage.removeItem('savedEmail');
-        localStorage.removeItem('savedPassword');
-        localStorage.removeItem('rememberMe');
-      }
+    if (token && userId) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', userId);
+      if (userName) localStorage.setItem('userName', userName);
       navigate('/dashboard', { replace: true });
-    } catch (err) {
-      if (!err.response) {
-        setError('Servidor indisponível — verifique se o backend está rodando');
-      } else {
-        setError(err.response?.data?.error || 'Erro na requisição');
-      }
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    if (params.get('error')) {
+      setError('Erro ao autenticar com Mercado Livre. Tente novamente.');
+    }
+
+    if (localStorage.getItem('token') && localStorage.getItem('userId')) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [location.search, navigate]);
+
+  const handleLogin = () => {
+    window.location.href = `${API_URL.replace('/api', '')}/api/auth/ml/login`;
   };
 
   return (
@@ -99,15 +69,16 @@ function Login() {
       background: 'var(--ml-yellow)',
       padding: '20px',
     }}>
-      <div className="login-card" style={{
+      <div style={{
         background: '#fff',
         borderRadius: '8px',
         padding: '40px',
         width: '100%',
         maxWidth: '400px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+        textAlign: 'center',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ marginBottom: '28px' }}>
           <h1 style={{
             fontSize: '32px',
             fontWeight: 700,
@@ -118,148 +89,44 @@ function Login() {
             Desafio<span style={{ color: 'var(--ml-blue)' }}>ML</span>
           </h1>
           <p style={{ fontSize: '14px', color: 'var(--ml-text-tertiary)' }}>
-            {tab === 'login' ? 'Entre com sua conta' : 'Crie sua conta'}
+            Gerencie seus anúncios no Mercado Livre
           </p>
         </div>
 
-        {tab === 'login' && (
-          <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', marginBottom: '24px' }}>
-            Não tem conta?{' '}
-            <button
-              onClick={() => { setTab('register'); setError(''); setEmail(''); setPassword(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
-            >
-              Criar uma conta
-            </button>
-          </p>
+        {error && (
+          <p style={{ color: 'var(--ml-red)', fontSize: '13px', marginBottom: '16px' }}>{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {tab === 'register' && (
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
-                Nome
-              </label>
-              <input
-                required
-                placeholder="Seu nome"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid var(--ml-border)',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
-              />
-            </div>
-          )}
+        <button
+          onClick={handleLogin}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            background: '#FFF',
+            color: '#333',
+            border: '2px solid var(--ml-yellow)',
+            padding: '14px 24px',
+            borderRadius: '6px',
+            fontSize: '15px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            width: '100%',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; e.target.style.background = '#F5F9FF'; }}
+          onMouseLeave={(e) => { e.target.style.borderColor = 'var(--ml-yellow)'; e.target.style.background = '#FFF'; }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--ml-yellow)">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+          Entrar com Mercado Livre
+        </button>
 
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
-              Email
-            </label>
-            <input
-              required
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid var(--ml-border)',
-                borderRadius: '4px',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ml-text-secondary)', display: 'block', marginBottom: '4px' }}>
-              Senha
-            </label>
-            <input
-              required
-              type="password"
-              placeholder="Sua senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid var(--ml-border)',
-                borderRadius: '4px',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--ml-blue)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--ml-border)'; }}
-            />
-          </div>
-
-          {tab === 'login' && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--ml-text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
-              <input type="checkbox" checked={remember} onChange={(e) => {
-                const val = e.target.checked;
-                setRemember(val);
-                if (!val) {
-                  localStorage.removeItem('savedEmail');
-                  localStorage.removeItem('savedPassword');
-                  localStorage.removeItem('rememberMe');
-                }
-              }} style={{ accentColor: 'var(--ml-blue)', cursor: 'pointer' }} />
-              Lembrar de mim
-            </label>
-          )}
-
-          {error && (
-            <p style={{ color: 'var(--ml-red)', fontSize: '13px', margin: 0 }}>{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              background: loading ? '#93b8f5' : 'var(--ml-blue)',
-              color: '#fff',
-              border: 'none',
-              padding: '12px',
-              borderRadius: '4px',
-              fontSize: '15px',
-              fontWeight: 600,
-              cursor: loading ? 'default' : 'pointer',
-              transition: 'background 0.15s',
-              marginTop: '4px',
-            }}
-            onMouseEnter={(e) => { if (!loading) e.target.style.background = 'var(--ml-blue-dark)'; }}
-            onMouseLeave={(e) => { if (!loading) e.target.style.background = 'var(--ml-blue)'; }}
-          >
-            {loading ? 'Aguarde...' : tab === 'login' ? 'Entrar' : 'Criar Conta'}
-          </button>
-
-          {tab === 'register' && (
-            <p style={{ fontSize: '13px', color: 'var(--ml-text-secondary)', textAlign: 'center', margin: 0 }}>
-              Já tem conta?{' '}
-              <button
-                onClick={() => { setTab('login'); setError(''); setEmail(remember ? localStorage.getItem('savedEmail') || '' : ''); setPassword(remember ? localStorage.getItem('savedPassword') || '' : ''); setName(''); }}
-                style={{ background: 'none', border: 'none', color: 'var(--ml-blue)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
-              >
-                Fazer login
-              </button>
-            </p>
-          )}
-        </form>
+        <p style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginTop: '20px' }}>
+          Você será redirecionado para autorizar o acesso à sua conta do Mercado Livre.
+        </p>
       </div>
     </div>
   );
@@ -274,7 +141,7 @@ function Dashboard() {
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '' });
   const [formData, setFormData] = useState({
     id: null, title: '', price: '', available_quantity: '', image: '',
-    description: '', free_shipping: false, is_full: false
+    description: '', free_shipping: false, is_full: false, category_id: ''
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
@@ -309,8 +176,8 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       navigate('/', { replace: true });
       return;
     }
@@ -331,6 +198,7 @@ function Dashboard() {
           description: stateAd.description || '',
           free_shipping: stateAd.free_shipping || false,
           is_full: stateAd.is_full || false,
+          category_id: stateAd.category_id || '',
         });
       } else {
         api.get(`/ads/${editId}`).then(ad => {
@@ -343,11 +211,12 @@ function Dashboard() {
             description: ad.data.description || '',
             free_shipping: ad.data.free_shipping || false,
             is_full: ad.data.is_full || false,
+            category_id: ad.data.category_id || '',
           });
         }).catch(console.error);
       }
     } else {
-      setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+      setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
     }
   }, [view, editId]);
 
@@ -418,18 +287,16 @@ function Dashboard() {
       navigate('/dashboard/meus-anuncios');
       fetchAds();
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Erro na requisição';
+      const msg = err.response?.data?.error || err.message || 'Erro na requisicao';
       console.error('Submit error:', err);
       alert(msg);
     }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
-    localStorage.removeItem('savedEmail');
-    localStorage.removeItem('savedPassword');
-    localStorage.removeItem('rememberMe');
     navigate('/');
   };
 
@@ -453,7 +320,7 @@ function Dashboard() {
 
   let navTarget = null;
   let navLabel = null;
-  if (view === 'grid') { navTarget = '/dashboard/meus-anuncios'; navLabel = 'Meus Anúncios'; }
+  if (view === 'grid') { navTarget = '/dashboard/meus-anuncios'; navLabel = 'Meus Anuncios'; }
   else if (view === 'product-detail') { navTarget = '/dashboard'; navLabel = 'Voltar'; }
   else if (view === 'my-ads') { navTarget = '/dashboard'; navLabel = 'Voltar'; }
   else if (view === 'form' && editId) { navTarget = '/dashboard/meus-anuncios'; navLabel = 'Voltar'; }
@@ -526,10 +393,10 @@ function Dashboard() {
                       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
                     <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-secondary)', marginBottom: '8px' }}>
-                      {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anúncio publicado'}
+                      {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anuncio publicado'}
                     </h3>
                     <p style={{ fontSize: '14px', maxWidth: '300px' }}>
-                      {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anúncio em "Meus Anúncios".'}
+                      {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anuncio em "Meus Anuncios".'}
                     </p>
                   </div>
                 ) : (
@@ -537,7 +404,7 @@ function Dashboard() {
                     <div style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '12px', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>
                         {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
-                        {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
+                        {searchQuery && <> para &quot;<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>&quot;</>}
                       </span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}
@@ -557,7 +424,7 @@ function Dashboard() {
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="myads-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
               <MyAdsPage onEdit={handleEditAd} onNew={() => {
-                setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+                setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
                 navigate('/dashboard/novo-anuncio');
               }} fetchAds={fetchAds} />
             </div>
@@ -572,7 +439,7 @@ function Dashboard() {
                 setFormData={setFormData}
                 onSubmit={handleSubmit}
                 onCancel={() => {
-                  setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+                  setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
                   navigate('/dashboard/meus-anuncios');
                 }}
               />

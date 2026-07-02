@@ -1,76 +1,91 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const ml = require('../services/mercadolibre');
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const authMiddleware = (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
   try {
-    const { name, email, password } = req.body;
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    req.userId = decoded.userId;
+    req.mlUserId = decoded.mlUserId;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token inválido ou expirado' });
+  }
+};
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
+router.get('/ml/login', (req, res) => {
+  const redirectUri = process.env.ML_REDIRECT_URI;
+  const state = Math.random().toString(36).slice(2);
+  const url = ml.getAuthUrl(redirectUri, state);
+  res.redirect(url);
+});
+
+router.get('/ml/callback', async (req, res) => {
+  try {
+    const { code, error } = req.query;
+    if (error || !code) {
+      return res.redirect(`${FRONTEND_URL}/?error=${error || 'no_code'}`);
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
+    const redirectUri = process.env.ML_REDIRECT_URI;
+    const tokenData = await ml.exchangeCode(code, redirectUri);
+    const { access_token, refresh_token, user_id, expires_in } = tokenData;
+
+    const mlUser = await ml.getUser(access_token);
+    const name = mlUser.nickname || mlUser.first_name || 'Vendedor';
+    const email = mlUser.email || '';
+
+    let user = await User.findOne({ ml_user_id: String(user_id) });
+    if (user) {
+      user.ml_access_token = access_token;
+      user.ml_refresh_token = refresh_token;
+      user.ml_token_expires_at = new Date(Date.now() + expires_in * 1000);
+      user.name = name;
+      if (email) user.email = email;
+    } else {
+      user = await User.create({
+        name,
+        email,
+        ml_user_id: String(user_id),
+        ml_access_token: access_token,
+        ml_refresh_token: refresh_token,
+        ml_token_expires_at: new Date(Date.now() + expires_in * 1000),
+      });
     }
+    await user.save();
 
-    if (name.length < 3) {
-      return res.status(400).json({ error: 'Nome deve ter no mínimo 3 caracteres' });
-    }
+    const jwtToken = jwt.sign(
+      { userId: user._id.toString(), mlUserId: String(user_id) },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Email inválido' });
-    }
-
-    const exists = await User.findOne({ email: email.toLowerCase() });
-    if (exists) {
-      return res.status(409).json({ error: 'Email já cadastrado' });
-    }
-
-    const user = await User.create({ name, email, password });
-
-    res.status(201).json({ userId: user._id, name: user.name });
-  } catch (error) {
-    console.error('Erro no register:', error.message);
-    res.status(500).json({ error: 'Erro ao cadastrar: ' + error.message });
+    res.redirect(
+      `${FRONTEND_URL}/?token=${jwtToken}&userId=${user._id}&userName=${encodeURIComponent(name)}`
+    );
+  } catch (err) {
+    console.error('ML callback error:', err.response?.data || err.message);
+    res.redirect(`${FRONTEND_URL}/?error=callback_failed`);
   }
 });
 
-router.post('/login', async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(401).json({ error: 'Email ou senha inválidos' });
-    }
-
-    const match = await user.comparePassword(password);
-    if (!match) {
-      return res.status(401).json({ error: 'Email ou senha inválidos' });
-    }
-
-    res.json({ userId: user._id, name: user.name });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao fazer login' });
+    const user = await User.findById(req.userId).select('name email ml_user_id');
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar usuário' });
   }
 });
 
-router.get('/check-email', async (req, res) => {
-  try {
-    const { email } = req.query;
-    if (!email) return res.status(400).json({ error: 'Email é obrigatório' });
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    res.json({ exists: !!user });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao verificar email' });
-  }
-});
-
-module.exports = router;
+module.exports = { router, authMiddleware };
