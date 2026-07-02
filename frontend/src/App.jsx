@@ -13,11 +13,6 @@ const unmaskPrice = (masked) => {
   return parseFloat(masked.replace(/\./g, '').replace(',', '.'));
 };
 
-const toMaskedPrice = (num) => {
-  if (num === null || num === undefined || num === '') return '';
-  return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
 function Login() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('login');
@@ -349,10 +344,9 @@ function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formattedPrice = toMaskedPrice(formData.price);
       const payload = {
         ...formData,
-        price: formattedPrice ? unmaskPrice(formattedPrice) : ''
+        price: unmaskPrice(formData.price)
       };
       if (formData.id) {
         await api.put(`/ads/${formData.id}`, payload);
