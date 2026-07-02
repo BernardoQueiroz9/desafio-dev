@@ -13,12 +13,28 @@ const formatPrice = (v) => {
 };
 
 export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }) {
+  const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(null);
   const [preview, setPreview] = useState(formData.image || '');
   const [imgTab, setImgTab] = useState('url');
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
   const dropRef = useRef(null);
+
+  const handleLocalSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    if (Number(formData.available_quantity) < 1) {
+      alert('Estoque deve ser no mínimo 1');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const loadFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -124,7 +140,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
         </h2>
       </div>
 
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <form onSubmit={handleLocalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {fieldCard(
           <div
             ref={dropRef}
@@ -204,7 +220,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
           </div>
           <div style={{ flex: 1, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
             <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Estoque</p>
-            <input required type="number" min="0" placeholder="10" value={formData.available_quantity}
+            <input required type="number" min="1" placeholder="10" value={formData.available_quantity}
               onChange={(e) => setFormData({ ...formData, available_quantity: e.target.value })}
               style={inputStyle}
               onFocus={() => setFocused('qty')} onBlur={() => setFocused(null)} />
@@ -267,13 +283,13 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" style={{
+          <button type="submit" disabled={submitting} style={{
             flex: 1, padding: '13px', borderRadius: '6px', border: 'none',
-            background: colors.blue, color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s', marginTop: '4px',
+            background: submitting ? '#B0C4DE' : colors.blue, color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: '4px',
           }}
-            onMouseEnter={(e) => { e.target.style.background = colors.blueDark; }}
-            onMouseLeave={(e) => { e.target.style.background = colors.blue; }}
-          >{formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio'}</button>
+            onMouseEnter={(e) => { if (!submitting) e.target.style.background = colors.blueDark; }}
+            onMouseLeave={(e) => { if (!submitting) e.target.style.background = colors.blue; }}
+          >{submitting ? (formData.id ? 'Atualizando...' : 'Publicando...') : (formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio')}</button>
 
           <button type="button" onClick={onCancel}
             style={{ padding: '13px 20px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: '#FFF', color: colors.textSec, fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}

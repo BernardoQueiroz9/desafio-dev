@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const styles = {
   header: {
     background: 'var(--ml-yellow)',
-    padding: '12px 0',
+    padding: '8px 0',
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -16,7 +16,7 @@ const styles = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '12px',
     flexWrap: 'wrap',
     position: 'relative',
   },
@@ -36,23 +36,15 @@ const styles = {
   logoAccent: {
     color: 'var(--ml-blue)',
   },
-  searchWrapper: {
-    flex: 1,
-    display: 'flex',
-    maxWidth: '600px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-    borderRadius: '4px',
-    overflow: 'hidden',
-    minWidth: '180px',
-  },
   searchInput: {
     flex: 1,
     border: 'none',
-    padding: '10px 14px',
+    padding: '9px 12px',
     fontSize: '14px',
     outline: 'none',
     color: '#333',
     background: '#fff',
+    minWidth: 0,
   },
   searchButton: {
     background: 'var(--ml-blue)',
@@ -63,6 +55,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'background 0.15s',
+    flexShrink: 0,
   },
   syncBtn: {
     background: 'transparent',
@@ -75,6 +68,7 @@ const styles = {
     color: '#333',
     transition: 'background 0.15s',
     position: 'relative',
+    flexShrink: 0,
   },
   syncBadge: {
     position: 'absolute',
@@ -90,6 +84,7 @@ const styles = {
     color: '#555',
     fontWeight: 500,
     whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   navBtn: {
     background: 'transparent',
@@ -98,10 +93,14 @@ const styles = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 600,
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     whiteSpace: 'nowrap',
     transition: 'background 0.15s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexShrink: 0,
   },
   logoutBtn: {
     background: 'transparent',
@@ -110,9 +109,13 @@ const styles = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 500,
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexShrink: 0,
   },
 };
 
@@ -135,6 +138,14 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
 
   const isGridView = currentView === 'grid';
 
+  const handleNavClick = () => {
+    if (isGridView) {
+      navigate('/dashboard/meus-anuncios');
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
@@ -142,41 +153,67 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           Desafio<span style={styles.logoAccent}>ML</span>
         </button>
 
-        {isGridView && (
-          <form onSubmit={handleSubmit} style={styles.searchWrapper} className={isGridView ? '' : 'header-search-form'}>
-            <input
-              style={styles.searchInput}
-              placeholder="Buscar produtos..."
-              value={localValue}
-              onChange={(e) => setLocalValue(e.target.value)}
-              aria-label="Buscar produtos"
-            />
-            <button type="submit" style={styles.searchButton} aria-label="Buscar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className={`header-search-wrap${isGridView ? '' : ' header-search-nogrid'}`}
+          style={{
+            flex: 1,
+            display: 'flex',
+            maxWidth: '600px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            minWidth: '180px',
+          }}
+        >
+          <input
+            style={styles.searchInput}
+            placeholder="Buscar produtos..."
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            aria-label="Buscar produtos"
+          />
+          <button type="submit" style={styles.searchButton} aria-label="Buscar"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ml-blue-dark)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--ml-blue)'; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </form>
 
         {isGridView && localValue && (
-          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)' }}>
+          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px' }}>
             Limpar
           </button>
         )}
 
         <button
-          onClick={() => navigate(isGridView ? '/dashboard/meus-anuncios' : '/dashboard')}
+          onClick={handleNavClick}
           style={{
             ...styles.navBtn,
             background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
           }}
           onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
           onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
+          title={isGridView ? 'Meus Anúncios' : 'Voltar'}
         >
           <span className="header-nav-text">{isGridView ? 'Meus Anúncios' : '← Voltar'}</span>
-          <span className="header-nav-icon" style={{ display: 'none' }}>{isGridView ? '📋' : '←'}</span>
+          <span className="header-nav-icon">
+            {isGridView ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            )}
+          </span>
         </button>
 
         {isGridView && onSync && (
@@ -202,7 +239,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           </button>
         )}
 
-        <span style={styles.userName}>{userName}</span>
+        <span style={styles.userName} className="header-username">{userName}</span>
 
         <button
           onClick={onLogout}
@@ -213,9 +250,16 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           onMouseEnter={() => setHoverLogout(true)}
           onMouseLeave={() => setHoverLogout(false)}
           aria-label="Sair"
+          title="Sair"
         >
           <span className="header-nav-text">Sair</span>
-          <span className="header-nav-icon" style={{ display: 'none' }}>✕</span>
+          <span className="header-nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
         </button>
       </div>
     </header>

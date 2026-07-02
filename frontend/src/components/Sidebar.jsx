@@ -43,7 +43,8 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
   useEffect(() => {
     if (!drag) return;
     const handleMove = (e) => {
-      const val = posToVal(e.clientX);
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const val = posToVal(clientX);
       if (drag === 'min') {
         onChange({ ...value, min: Math.min(val, value.max) });
       } else {
@@ -53,9 +54,13 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
     const handleUp = () => setDrag(null);
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleUp);
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleUp);
     };
   }, [drag, posToVal, value, onChange]);
 
@@ -86,6 +91,16 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
             onChange({ ...value, max: Math.max(val, value.min) });
           }
         }}
+        onTouchStart={(e) => {
+          if (e.touches.length !== 1) return;
+          const val = posToVal(e.touches[0].clientX);
+          const mid = (value.min + value.max) / 2;
+          if (val < mid) {
+            onChange({ ...value, min: Math.min(val, value.max) });
+          } else {
+            onChange({ ...value, max: Math.max(val, value.min) });
+          }
+        }}
       >
         <div style={{
           position: 'absolute',
@@ -97,6 +112,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
         }} />
         <div
           onMouseDown={handleMouseDown('min')}
+          onTouchStart={(e) => { e.preventDefault(); setDrag('min'); }}
           style={{
             position: 'absolute',
             top: '50%',
@@ -108,12 +124,14 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
             borderRadius: '50%',
             transform: 'translate(-50%, -50%)',
             cursor: 'grab',
+            touchAction: 'none',
             boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
             zIndex: drag === 'min' ? 2 : 1,
           }}
         />
         <div
           onMouseDown={handleMouseDown('max')}
+          onTouchStart={(e) => { e.preventDefault(); setDrag('max'); }}
           style={{
             position: 'absolute',
             top: '50%',
@@ -125,6 +143,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
             borderRadius: '50%',
             transform: 'translate(-50%, -50%)',
             cursor: 'grab',
+            touchAction: 'none',
             boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
             zIndex: drag === 'max' ? 2 : 1,
           }}

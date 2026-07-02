@@ -28,6 +28,10 @@ router.post('/', checkAuth, async (req, res) => {
   try {
     const { title, price, available_quantity, image, description, free_shipping, is_full } = req.body;
 
+    if (available_quantity < 1) {
+      return res.status(400).json({ error: 'Estoque deve ser no mínimo 1' });
+    }
+
     const mlResponse = await fetchWithRetry(`${BACKEND_BASE}/mock/items`, req.body);
     
     const newAd = new Ad({
@@ -125,6 +129,10 @@ router.put('/:id', checkAuth, async (req, res) => {
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
 
     if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
+
+    if (available_quantity < 1) {
+      return res.status(400).json({ error: 'Estoque deve ser no mínimo 1' });
+    }
 
     await fetchWithRetry(`${BACKEND_BASE}/mock/items/${ad.ml_id}`, req.body, 'put');
 

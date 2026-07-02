@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import SyncPanel from './components/SyncPanel';
 import AdFormPage from './components/AdFormPage';
 import MyAdsPage from './components/MyAdsPage';
+import ProductDetailPage from './components/ProductDetailPage';
 
 const unmaskPrice = (masked) => {
   if (!masked) return '';
@@ -282,10 +283,12 @@ function Dashboard() {
   const pathParts = location.pathname.split('/').filter(Boolean);
   const isEdit = pathParts[1] === 'editar' && pathParts[2];
   const editId = isEdit ? pathParts[2] : null;
+  const isProduct = pathParts[1] === 'produto' && pathParts[2];
   let view = 'grid';
   if (pathParts[1] === 'meus-anuncios') view = 'my-ads';
   else if (pathParts[1] === 'novo-anuncio') view = 'form';
   else if (isEdit) view = 'form';
+  else if (isProduct) view = 'product-detail';
 
   const userName = localStorage.getItem('userName') || 'Vendedor';
 
@@ -435,6 +438,7 @@ function Dashboard() {
   const handleFilter = (overrideFilters) => {
     const f = overrideFilters || filters;
     fetchAds(f, searchQuery);
+    setSidebarOpen(false);
   };
 
   const handleEditAd = (ad) => {
@@ -558,6 +562,10 @@ function Dashboard() {
               />
             </div>
           </div>
+        )}
+
+        {view === 'product-detail' && (
+          <ProductDetailPage />
         )}
       </div>
 

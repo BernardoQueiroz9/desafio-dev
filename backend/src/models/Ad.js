@@ -4,7 +4,7 @@ const AdSchema = new mongoose.Schema({
   ml_id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   price: { type: Number, required: true },
-  available_quantity: { type: Number, required: true },
+  available_quantity: { type: Number, required: true, min: 1 },
   image: { type: String, default: '' },
   description: { type: String, default: '' },
   free_shipping: { type: Boolean, default: false },
