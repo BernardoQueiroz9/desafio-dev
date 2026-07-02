@@ -50,6 +50,11 @@ async function start() {
     console.log('✅ MongoDB Local (em memória) Conectado');
   }
 
+  try {
+    await mongoose.connection.db.collection('users').dropIndex('ml_user_id_1');
+    console.log('🧹 Índice obsoleto ml_user_id_1 removido');
+  } catch (_) {}
+
   app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
   });
