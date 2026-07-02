@@ -157,7 +157,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
   );
 }
 
-export default function Sidebar({ filters, setFilters, onFilter, collapsed, onToggleCollapse }) {
+export default function Sidebar({ filters, setFilters, onFilter, collapsed, onToggleCollapse, currentView, onNavigate, onSync, syncing, hasDivergences, userName, onLogout }) {
   const rawMin = filters.minPrice || '';
   const rawMax = filters.maxPrice || '';
   const numMin = parseBr(rawMin);
@@ -256,7 +256,6 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '12px', background: colors.bgCard }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: colors.textSec, marginBottom: '10px' }}>Faixa de preço</p>
 
-          {/* Input fields row */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: '11px', color: colors.textTer, display: 'block', marginBottom: '2px' }}>Mín</label>
@@ -278,7 +277,6 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
             </div>
           </div>
 
-          {/* Slider */}
           <RangeSlider value={rangeVal} onChange={handleRangeChange} rangeMin={sliderMin} rangeMax={sliderMax} />
         </div>
 
@@ -298,6 +296,75 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
             color: colors.textSec, fontSize: '12px', fontWeight: 600, cursor: 'pointer',
           }}>Limpar Filtros</button>
         )}
+      </div>
+
+      <div className="sidebar-nav-mobile" style={{
+        marginTop: 'auto', borderTop: `1px solid ${colors.border}`, padding: '12px',
+        display: 'flex', flexDirection: 'column', gap: '4px',
+      }}>
+        {(currentView === 'grid' || currentView === 'product-detail') && (
+          <button onClick={() => { if (onNavigate) onNavigate('my-ads'); }} style={{
+            width: '100%', padding: '10px 12px', borderRadius: '6px', border: 'none',
+            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            gap: '10px', fontSize: '14px', color: colors.text, fontWeight: 500,
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={(e) => { e.target.style.background = colors.blueLight; }}
+            onMouseLeave={(e) => { e.target.style.background = 'transparent'; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Meus Anúncios
+          </button>
+        )}
+
+        {(currentView === 'grid' || currentView === 'product-detail') && onSync && (
+          <button onClick={onSync} disabled={syncing} style={{
+            width: '100%', padding: '10px 12px', borderRadius: '6px', border: 'none',
+            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            gap: '10px', fontSize: '14px', color: colors.text, fontWeight: 500,
+            transition: 'background 0.15s', opacity: syncing ? 0.5 : 1,
+          }}
+            onMouseEnter={(e) => { if (!syncing) e.target.style.background = colors.blueLight; }}
+            onMouseLeave={(e) => { e.target.style.background = 'transparent'; }}
+          >
+            <div style={{ position: 'relative', display: 'flex' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }}
+              >
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              {hasDivergences && <span style={{
+                position: 'absolute', top: '-2px', right: '-4px', width: '8px', height: '8px',
+                borderRadius: '50%', background: 'var(--ml-red)',
+              }} />}
+            </div>
+            Sincronizar
+          </button>
+        )}
+
+        <button onClick={onLogout} style={{
+          width: '100%', padding: '10px 12px', borderRadius: '6px', border: 'none',
+          background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
+          gap: '10px', fontSize: '14px', color: '#FF4B4B', fontWeight: 500,
+          transition: 'background 0.15s',
+        }}
+          onMouseEnter={(e) => { e.target.style.background = '#FFF0F0'; }}
+          onMouseLeave={(e) => { e.target.style.background = 'transparent'; }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF4B4B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span className="sidebar-logout-text" style={{ color: '#FF4B4B' }}>Sair</span>
+        </button>
       </div>
     </aside>
   );

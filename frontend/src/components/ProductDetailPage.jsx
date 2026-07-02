@@ -135,7 +135,7 @@ export default function ProductDetailPage() {
         <div className="pd-content" style={s.content}>
           <div className="pd-image-col" style={s.imageCol}>
             <div style={s.imageBox}>
-              <img src={imageSrc} alt={ad.title} style={s.image}
+              <img key={ad._id} src={imageSrc} alt={ad.title} style={s.image}
                 onError={(e) => { e.target.src = PLACEHOLDER; }} />
             </div>
           </div>

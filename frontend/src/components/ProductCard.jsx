@@ -120,6 +120,7 @@ export default function ProductCard({ ad }) {
     >
       <div style={styles.imageWrapper}>
         <img
+          key={ad._id}
           src={imageSrc}
           alt={ad.title}
           style={styles.image}

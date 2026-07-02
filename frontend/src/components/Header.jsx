@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const styles = {
@@ -16,8 +16,7 @@ const styles = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    position: 'relative',
+    gap: '12px',
   },
   logo: {
     fontSize: '22px',
@@ -62,22 +61,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'background 0.15s',
-    flexShrink: 0,
-  },
-  searchCloseBtn: {
-    background: 'transparent',
-    border: 'none',
-    padding: '0 10px',
-    cursor: 'pointer',
-    display: 'none',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#999',
-  },
-  rightGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
     flexShrink: 0,
   },
   navBtn: {
@@ -140,88 +123,30 @@ const styles = {
     gap: '6px',
     flexShrink: 0,
   },
-  mobileSearchBtn: {
-    background: 'var(--ml-blue)',
-    border: 'none',
-    cursor: 'pointer',
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    flexShrink: 0,
-    transition: 'background 0.15s',
-  },
 };
 
 export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView }) {
   const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchValue || '');
-  const [hoverLogout, setHoverLogout] = useState(false);
   const [hoverSync, setHoverSync] = useState(false);
   const [hoverNav, setHoverNav] = useState({});
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const searchInputRef = useRef(null);
-
-  useEffect(() => {
-    if (mobileSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [mobileSearchOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSearch) onSearch(localValue);
-    setMobileSearchOpen(false);
-  };
-
-  const handleClear = () => {
-    setLocalValue('');
-    if (onSearch) onSearch('');
   };
 
   const showNavExtra = currentView === 'grid' || currentView === 'product-detail';
-  const showSync = showNavExtra;
-
-  const handleNavClick = () => {
-    if (showNavExtra) {
-      navigate('/dashboard/meus-anuncios');
-    } else {
-      navigate(-1);
-    }
-  };
 
   return (
-    <header style={styles.header} className={mobileSearchOpen ? 'header-search-active' : ''}>
+    <header style={styles.header}>
       <div style={styles.inner} className="header-inner">
-
         <button onClick={() => navigate('/dashboard')} style={styles.logo} title="Ver anúncios">
           Desafio<span style={styles.logoAccent}>ML</span>
         </button>
 
-        <div className="header-mobile-search-toggle">
-          <button
-            onClick={() => setMobileSearchOpen(true)}
-            style={styles.mobileSearchBtn}
-            aria-label="Abrir busca"
-            title="Buscar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-        </div>
-
-        <div className={`header-search-wrap${showNavExtra ? '' : ' header-search-nogrid'}${mobileSearchOpen ? ' header-search-expanded' : ''}`}
-          style={{
-            ...styles.searchGroup,
-          }}
-        >
+        <div className="header-search-wrap" style={styles.searchGroup}>
           <input
-            ref={searchInputRef}
             style={styles.searchInput}
             placeholder="Buscar produtos..."
             value={localValue}
@@ -237,27 +162,17 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
-          <button type="button" className="header-search-close"
-            onClick={() => setMobileSearchOpen(false)}
-            style={styles.searchCloseBtn}
-            aria-label="Fechar busca"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
         </div>
 
-        {showNavExtra && localValue && (
-          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px', flexShrink: 0 }}>
-            Limpar
-          </button>
-        )}
+        <div className="header-desktop-nav">
+          {showNavExtra && localValue && (
+            <button onClick={() => { setLocalValue(''); if (onSearch) onSearch(''); }} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px', flexShrink: 0 }}>
+              Limpar
+            </button>
+          )}
 
-        <div className="header-right-group" style={styles.rightGroup}>
           <button
-            onClick={handleNavClick}
+            onClick={() => navigate(showNavExtra ? '/dashboard/meus-anuncios' : -1)}
             style={{
               ...styles.navBtn,
               background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
@@ -266,7 +181,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
             onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
             title={showNavExtra ? 'Meus Anúncios' : 'Voltar'}
           >
-            <span className="header-nav-text">{showNavExtra ? 'Meus Anúncios' : '← Voltar'}</span>
+            <span className="header-nav-text">{showNavExtra ? 'Meus Anúncios' : 'Voltar'}</span>
             <span className="header-nav-icon">
               {showNavExtra ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -284,7 +199,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
             </span>
           </button>
 
-          {showSync && onSync && (
+          {showNavExtra && onSync && (
             <button
               style={{
                 ...styles.syncBtn,
@@ -311,18 +226,19 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
 
           <button
             onClick={onLogout}
+            className="header-logout-btn"
             style={{
               ...styles.logoutBtn,
-              background: hoverLogout ? 'rgba(0,0,0,0.06)' : 'transparent',
+              background: hoverNav.logout ? 'rgba(0,0,0,0.06)' : 'transparent',
             }}
-            onMouseEnter={() => setHoverLogout(true)}
-            onMouseLeave={() => setHoverLogout(false)}
+            onMouseEnter={() => setHoverNav(p => ({ ...p, logout: true }))}
+            onMouseLeave={() => setHoverNav(p => ({ ...p, logout: false }))}
             aria-label="Sair"
             title="Sair"
           >
             <span className="header-nav-text">Sair</span>
             <span className="header-nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF4B4B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>

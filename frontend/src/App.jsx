@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from './api';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
@@ -279,6 +279,7 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const abortRef = useRef(null);
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   const isEdit = pathParts[1] === 'editar' && pathParts[2];
@@ -293,6 +294,9 @@ function Dashboard() {
   const userName = localStorage.getItem('userName') || 'Vendedor';
 
   const loadAds = (q, f) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     const params = {};
     const minP = f?.minPrice || filters.minPrice;
@@ -301,7 +305,7 @@ function Dashboard() {
     if (minP) params.minPrice = unmaskPrice(minP);
     if (maxP) params.maxPrice = unmaskPrice(maxP);
     if (query) params.search = query;
-    api.get('/ads', { params }).then(res => { setAds(res.data); setLoading(false); }).catch(() => setLoading(false));
+    api.get('/ads', { params, signal: controller.signal }).then(res => { setAds(res.data); setLoading(false); }).catch(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -482,6 +486,13 @@ function Dashboard() {
                 onFilter={handleFilter}
                 collapsed={!sidebarOpen}
                 onToggleCollapse={() => setSidebarOpen(v => !v)}
+                currentView={view}
+                onNavigate={navigate}
+                onSync={onSync}
+                syncing={syncing}
+                hasDivergences={hasDivergences}
+                userName={userName}
+                onLogout={handleLogout}
               />
             </div>
 

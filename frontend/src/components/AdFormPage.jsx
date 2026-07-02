@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
@@ -20,6 +20,10 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
   const dropRef = useRef(null);
+
+  useEffect(() => {
+    setPreview(formData.image || '');
+  }, [formData.image]);
 
   const handleLocalSubmit = async (e) => {
     e.preventDefault();

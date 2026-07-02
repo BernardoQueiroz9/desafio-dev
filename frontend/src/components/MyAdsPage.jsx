@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 
+const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect fill="#F5F5F5" width="200" height="200"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#CCCCCC" font-family="sans-serif" font-size="14">Sem imagem</text></svg>'
+);
+
 const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
   text: '#333', textSec: '#666', textTer: '#999',
@@ -81,8 +85,8 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
               background: colors.bgCard, alignItems: 'center',
             }}>
               <div className="myads-item-image" style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: colors.bgBody, flexShrink: 0 }}>
-                <img src={ad.image || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
-                  onError={(e) => { e.target.style.display = 'none'; }} />
+                <img key={ad._id} src={ad.image || PLACEHOLDER} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
+                  onError={(e) => { e.target.src = PLACEHOLDER; }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '2px' }}>{ad.title}</p>

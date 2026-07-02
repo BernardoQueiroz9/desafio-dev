@@ -194,19 +194,11 @@ img {
   overflow: hidden;
 }
 
-.header-search-close {
-  display: none;
-}
-
-.header-right-group {
+.header-desktop-nav {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.header-mobile-search-toggle {
-  display: none;
 }
 
 /* ─── Mobile (<769) ─── */
@@ -239,6 +231,10 @@ img {
     box-shadow: 4px 0 20px rgba(0,0,0,0.2);
   }
 
+  .sidebar-nav-mobile {
+    display: flex !important;
+  }
+
   /* Header */
   header {
     overflow-x: hidden;
@@ -249,47 +245,33 @@ img {
     gap: 8px;
   }
 
-  .header-nav-icon {
-    display: flex !important;
-  }
-
-  .header-mobile-search-toggle {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
-
-  .header-search-wrap:not(.header-search-expanded) {
-    display: none !important;
-  }
-
-  .header-search-wrap.header-search-expanded {
+  .header-search-wrap {
     display: flex !important;
     width: 100%;
   }
 
-  .header-search-wrap.header-search-expanded .header-search-close {
+  .header-desktop-nav {
+    display: none !important;
+  }
+
+  .header-nav-icon {
     display: flex !important;
   }
 
-  .header-right-group {
-    gap: 4px;
-    flex-shrink: 0;
+  .header-nav-text {
+    display: none;
+  }
+
+  .header-logout-btn .header-nav-text {
+    display: none;
+  }
+
+  .header-logout-btn .header-nav-icon svg {
+    stroke: #FF4B4B !important;
   }
 
   .header-username {
     display: none;
-  }
-
-  /* Hide items when search is open */
-  .header-search-active .header-mobile-search-toggle,
-  .header-search-active .header-right-group,
-  .header-search-active .header-clear-btn {
-    display: none !important;
-  }
-
-  .header-search-active .header-search-wrap {
-    display: flex !important;
   }
 
   /* Cards */
@@ -370,12 +352,19 @@ img {
     display: flex !important;
   }
 
-  .header-nav-icon {
-    display: none;
+  .sidebar-nav-mobile {
+    display: none !important;
   }
 
-  .header-search-nogrid {
-    display: none !important;
+  .header-desktop-nav {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .header-nav-icon {
+    display: none;
   }
 
   .header-mobile-search-toggle {
