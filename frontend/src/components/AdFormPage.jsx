@@ -21,12 +21,25 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, 
 
   const loadFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = (height / width) * MAX; width = MAX; }
+        else { width = (width / height) * MAX; height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       setPreview(dataUrl);
       setFormData({ ...formData, image: dataUrl });
     };
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
     reader.readAsDataURL(file);
   };
 
