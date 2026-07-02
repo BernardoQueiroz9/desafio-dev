@@ -451,6 +451,14 @@ function Dashboard() {
 
   const hasDivergences = syncData && syncData.divergences.length > 0;
 
+  let navTarget = null;
+  let navLabel = null;
+  if (view === 'grid') { navTarget = '/dashboard/meus-anuncios'; navLabel = 'Meus Anúncios'; }
+  else if (view === 'product-detail') { navTarget = '/dashboard'; navLabel = 'Voltar'; }
+  else if (view === 'my-ads') { navTarget = '/dashboard'; navLabel = 'Voltar'; }
+  else if (view === 'form' && editId) { navTarget = '/dashboard/meus-anuncios'; navLabel = 'Voltar'; }
+  else if (view === 'form' && !editId) { navTarget = '/dashboard'; navLabel = 'Voltar'; }
+
   const skeletonGrid = (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}
       className="product-grid">
@@ -465,10 +473,8 @@ function Dashboard() {
         searchValue={searchQuery}
         onLogout={handleLogout}
         userName={userName}
-        onSync={handleSync}
-        syncing={syncing}
-        hasDivergences={hasDivergences}
-        currentView={view}
+        navTarget={navTarget}
+        navLabel={navLabel}
       />
 
       <div style={{
@@ -488,10 +494,6 @@ function Dashboard() {
                 onToggleCollapse={() => setSidebarOpen(v => !v)}
                 currentView={view}
                 onNavigate={navigate}
-                onSync={handleSync}
-                syncing={syncing}
-                hasDivergences={hasDivergences}
-                userName={userName}
                 onLogout={handleLogout}
               />
             </div>
@@ -554,7 +556,10 @@ function Dashboard() {
         {view === 'my-ads' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="myads-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <MyAdsPage onEdit={handleEditAd} onNew={() => navigate('/dashboard/novo-anuncio')} fetchAds={fetchAds} />
+              <MyAdsPage onEdit={handleEditAd} onNew={() => {
+                setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+                navigate('/dashboard/novo-anuncio');
+              }} fetchAds={fetchAds} />
             </div>
           </div>
         )}
@@ -562,7 +567,7 @@ function Dashboard() {
         {view === 'form' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="form-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <AdFormPage
+              <AdFormPage key={editId || 'new'}
                 formData={formData}
                 setFormData={setFormData}
                 onSubmit={handleSubmit}

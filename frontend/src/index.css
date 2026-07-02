@@ -247,11 +247,19 @@ img {
 
   .header-search-wrap {
     display: flex !important;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   .header-desktop-nav {
-    display: none !important;
+    display: flex !important;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .header-desktop-nav button {
+    padding: 6px !important;
   }
 
   .header-nav-icon {

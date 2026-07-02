@@ -79,28 +79,6 @@ const styles = {
     gap: '6px',
     flexShrink: 0,
   },
-  syncBtn: {
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '8px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    color: '#333',
-    transition: 'background 0.15s',
-    position: 'relative',
-    flexShrink: 0,
-  },
-  syncBadge: {
-    position: 'absolute',
-    top: '2px',
-    right: '2px',
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: 'var(--ml-red)',
-  },
   userName: {
     fontSize: '13px',
     color: '#555',
@@ -125,18 +103,15 @@ const styles = {
   },
 };
 
-export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView }) {
+export default function Header({ onSearch, searchValue, onLogout, userName, navTarget, navLabel }) {
   const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchValue || '');
-  const [hoverSync, setHoverSync] = useState(false);
   const [hoverNav, setHoverNav] = useState({});
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSearch) onSearch(localValue);
   };
-
-  const showNavExtra = currentView === 'grid' || currentView === 'product-detail';
 
   return (
     <header style={styles.header}>
@@ -165,25 +140,25 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
         </div>
 
         <div className="header-desktop-nav">
-          {showNavExtra && localValue && (
+          {navTarget && localValue && (
             <button onClick={() => { setLocalValue(''); if (onSearch) onSearch(''); }} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px', flexShrink: 0 }}>
               Limpar
             </button>
           )}
 
           <button
-            onClick={() => navigate(showNavExtra ? '/dashboard/meus-anuncios' : -1)}
+            onClick={() => { if (navTarget) navigate(navTarget); }}
             style={{
               ...styles.navBtn,
               background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
             }}
             onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
             onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
-            title={showNavExtra ? 'Meus Anúncios' : 'Voltar'}
+            title={navLabel || ''}
           >
-            <span className="header-nav-text">{showNavExtra ? 'Meus Anúncios' : 'Voltar'}</span>
+            <span className="header-nav-text">{navLabel || ''}</span>
             <span className="header-nav-icon">
-              {showNavExtra ? (
+              {navLabel === 'Meus Anúncios' ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="7" height="7" rx="1"/>
                   <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -198,29 +173,6 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
               )}
             </span>
           </button>
-
-          {showNavExtra && onSync && (
-            <button
-              style={{
-                ...styles.syncBtn,
-                background: hoverSync ? 'rgba(0,0,0,0.06)' : 'transparent',
-                animation: syncing ? 'spin 1s linear infinite' : 'none',
-              }}
-              onClick={onSync}
-              onMouseEnter={() => setHoverSync(true)}
-              onMouseLeave={() => setHoverSync(false)}
-              disabled={syncing}
-              aria-label="Sincronizar com marketplace"
-              title="Verificar divergências com o marketplace"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="23 4 23 10 17 10"/>
-                <polyline points="1 20 1 14 7 14"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              {hasDivergences && <span style={styles.syncBadge} />}
-            </button>
-          )}
 
           <span style={styles.userName} className="header-username">{userName}</span>
 

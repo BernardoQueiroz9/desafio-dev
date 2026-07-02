@@ -156,7 +156,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
           >
             {preview ? (
               <div style={{ position: 'relative' }}>
-                <img src={preview} alt="" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', background: colors.bgBody, marginBottom: '8px' }}
+                <img key={preview || 'empty'} src={preview} alt="" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', background: colors.bgBody, marginBottom: '8px' }}
                   onError={(e) => { e.target.style.display = 'none'; }} />
                 {dragOver && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(52,131,250,0.08)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: colors.blue, border: `2px dashed ${colors.blue}`, pointerEvents: 'none' }}>

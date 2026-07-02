@@ -157,7 +157,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
   );
 }
 
-export default function Sidebar({ filters, setFilters, onFilter, collapsed, onToggleCollapse, currentView, onNavigate, onSync, syncing, hasDivergences, userName, onLogout }) {
+export default function Sidebar({ filters, setFilters, onFilter, collapsed, onToggleCollapse, currentView, onNavigate, onLogout }) {
   const rawMin = filters.minPrice || '';
   const rawMax = filters.maxPrice || '';
   const numMin = parseBr(rawMin);
@@ -319,33 +319,6 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
               <rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
             Meus Anúncios
-          </button>
-        )}
-
-        {(currentView === 'grid' || currentView === 'product-detail') && onSync && (
-          <button onClick={onSync} disabled={syncing} style={{
-            width: '100%', padding: '10px 12px', borderRadius: '6px', border: 'none',
-            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
-            gap: '10px', fontSize: '14px', color: colors.text, fontWeight: 500,
-            transition: 'background 0.15s', opacity: syncing ? 0.5 : 1,
-          }}
-            onMouseEnter={(e) => { if (!syncing) e.target.style.background = colors.blueLight; }}
-            onMouseLeave={(e) => { e.target.style.background = 'transparent'; }}
-          >
-            <div style={{ position: 'relative', display: 'flex' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }}
-              >
-                <polyline points="23 4 23 10 17 10"/>
-                <polyline points="1 20 1 14 7 14"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              {hasDivergences && <span style={{
-                position: 'absolute', top: '-2px', right: '-4px', width: '8px', height: '8px',
-                borderRadius: '50%', background: 'var(--ml-red)',
-              }} />}
-            </div>
-            Sincronizar
           </button>
         )}
 
