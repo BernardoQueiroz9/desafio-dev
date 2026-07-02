@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const styles = {
@@ -117,6 +117,18 @@ const styles = {
     gap: '6px',
     flexShrink: 0,
   },
+  iconBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#333',
+    cursor: 'pointer',
+    padding: '8px',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
 };
 
 export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView }) {
@@ -125,10 +137,20 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
   const [hoverLogout, setHoverLogout] = useState(false);
   const [hoverSync, setHoverSync] = useState(false);
   const [hoverNav, setHoverNav] = useState({});
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (mobileSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [mobileSearchOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSearch) onSearch(localValue);
+    setMobileSearchOpen(false);
   };
 
   const handleClear = () => {
@@ -148,12 +170,27 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
 
   return (
     <header style={styles.header}>
-      <div style={styles.inner}>
+      <div style={styles.inner} className={`header-inner${mobileSearchOpen ? ' search-open' : ''}`}>
         <button onClick={() => navigate('/dashboard')} style={styles.logo} title="Ver anúncios">
           Desafio<span style={styles.logoAccent}>ML</span>
         </button>
 
-        <form onSubmit={handleSubmit} className={`header-search-wrap${isGridView ? '' : ' header-search-nogrid'}`}
+        <div className="header-mobile-search-toggle">
+          <button
+            onClick={() => setMobileSearchOpen(true)}
+            style={styles.iconBtn}
+            aria-label="Abrir busca"
+            title="Buscar"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className={`header-search-wrap${isGridView ? '' : ' header-search-nogrid'}${mobileSearchOpen ? ' header-search-expanded' : ''}`}
+          ref={searchRef}
           style={{
             flex: 1,
             display: 'flex',
@@ -165,6 +202,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           }}
         >
           <input
+            ref={searchInputRef}
             style={styles.searchInput}
             placeholder="Buscar produtos..."
             value={localValue}
@@ -180,87 +218,108 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
+          <button type="button" className="header-search-close"
+            onClick={() => setMobileSearchOpen(false)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '0 10px',
+              cursor: 'pointer',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999',
+            }}
+            aria-label="Fechar busca"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </form>
 
-        {isGridView && localValue && (
-          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px' }}>
-            Limpar
-          </button>
-        )}
+        <div className="header-desktop-items">
+          {isGridView && localValue && (
+            <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px' }}>
+              Limpar
+            </button>
+          )}
 
-        <button
-          onClick={handleNavClick}
-          style={{
-            ...styles.navBtn,
-            background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
-          }}
-          onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
-          onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
-          title={isGridView ? 'Meus Anúncios' : 'Voltar'}
-        >
-          <span className="header-nav-text">{isGridView ? 'Meus Anúncios' : '← Voltar'}</span>
-          <span className="header-nav-icon">
-            {isGridView ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"/>
-                <polyline points="12 19 5 12 12 5"/>
-              </svg>
-            )}
-          </span>
-        </button>
-
-        {isGridView && onSync && (
           <button
+            onClick={handleNavClick}
             style={{
-              ...styles.syncBtn,
-              background: hoverSync ? 'rgba(0,0,0,0.06)' : 'transparent',
-              animation: syncing ? 'spin 1s linear infinite' : 'none',
+              ...styles.navBtn,
+              background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
             }}
-            onClick={onSync}
-            onMouseEnter={() => setHoverSync(true)}
-            onMouseLeave={() => setHoverSync(false)}
-            disabled={syncing}
-            aria-label="Sincronizar com marketplace"
-            title="Verificar divergências com o marketplace"
+            onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
+            onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
+            title={isGridView ? 'Meus Anúncios' : 'Voltar'}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-            {hasDivergences && <span style={styles.syncBadge} />}
+            <span className="header-nav-text">{isGridView ? 'Meus Anúncios' : '← Voltar'}</span>
+            <span className="header-nav-icon">
+              {isGridView ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"/>
+                  <polyline points="12 19 5 12 12 5"/>
+                </svg>
+              )}
+            </span>
           </button>
-        )}
 
-        <span style={styles.userName} className="header-username">{userName}</span>
+          {isGridView && onSync && (
+            <button
+              style={{
+                ...styles.syncBtn,
+                background: hoverSync ? 'rgba(0,0,0,0.06)' : 'transparent',
+                animation: syncing ? 'spin 1s linear infinite' : 'none',
+              }}
+              onClick={onSync}
+              onMouseEnter={() => setHoverSync(true)}
+              onMouseLeave={() => setHoverSync(false)}
+              disabled={syncing}
+              aria-label="Sincronizar com marketplace"
+              title="Verificar divergências com o marketplace"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              {hasDivergences && <span style={styles.syncBadge} />}
+            </button>
+          )}
 
-        <button
-          onClick={onLogout}
-          style={{
-            ...styles.logoutBtn,
-            background: hoverLogout ? 'rgba(0,0,0,0.06)' : 'transparent',
-          }}
-          onMouseEnter={() => setHoverLogout(true)}
-          onMouseLeave={() => setHoverLogout(false)}
-          aria-label="Sair"
-          title="Sair"
-        >
-          <span className="header-nav-text">Sair</span>
-          <span className="header-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-          </span>
-        </button>
+          <span style={styles.userName} className="header-username">{userName}</span>
+
+          <button
+            onClick={onLogout}
+            style={{
+              ...styles.logoutBtn,
+              background: hoverLogout ? 'rgba(0,0,0,0.06)' : 'transparent',
+            }}
+            onMouseEnter={() => setHoverLogout(true)}
+            onMouseLeave={() => setHoverLogout(false)}
+            aria-label="Sair"
+            title="Sair"
+          >
+            <span className="header-nav-text">Sair</span>
+            <span className="header-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </span>
+          </button>
+        </div>
       </div>
     </header>
   );

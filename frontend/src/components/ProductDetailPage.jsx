@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api';
 
 const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -60,12 +60,19 @@ const s = {
 
 export default function ProductDetailPage() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const location = useLocation();
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const id = pathParts[2];
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!id) {
+      setError('ID do anúncio não encontrado');
+      setLoading(false);
+      return;
+    }
     api.get(`/ads/${id}`).then(res => {
       setAd(res.data);
       setLoading(false);

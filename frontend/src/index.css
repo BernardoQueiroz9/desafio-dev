@@ -202,10 +202,6 @@ img {
     box-shadow: 4px 0 20px rgba(0,0,0,0.2);
   }
 
-  .header-nav-text {
-    display: none;
-  }
-
   .header-nav-icon {
     display: flex !important;
   }
@@ -217,12 +213,44 @@ img {
     order: 10;
   }
 
+  .header-search-expanded {
+    order: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .header-search-expanded .header-search-close {
+    display: flex !important;
+  }
+
   .header-search-nogrid {
     display: flex !important;
   }
 
   .header-username {
     display: none;
+  }
+
+  .header-mobile-search-toggle {
+    display: flex !important;
+  }
+
+  .header-desktop-items {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .header-inner.search-open .header-desktop-items {
+    display: none !important;
+  }
+
+  .header-inner.search-open .header-mobile-search-toggle {
+    display: none !important;
+  }
+
+  .header-inner.search-open .header-search-expanded {
+    display: flex !important;
   }
 
   .login-card {
@@ -305,6 +333,10 @@ img {
   }
 
   .header-search-nogrid {
+    display: none !important;
+  }
+
+  .header-mobile-search-toggle {
     display: none !important;
   }
 }
