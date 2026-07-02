@@ -439,6 +439,8 @@ function Dashboard() {
             onFilter={handleFilter}
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
+            collapsed={!sidebarOpen}
+            onToggleCollapse={() => setSidebarOpen(v => !v)}
           />
         </div>
 

@@ -456,13 +456,54 @@ function SearchScreen({ filters, setFilters, onFilter, searchQuery, onSearchChan
 }
 
 // ─── Main Sidebar ───────────────────────────────────────────────
-export default function Sidebar({ activeTab, onTabChange, ads, onEdit, formData, setFormData, onSubmit, onCancel, filters, setFilters, onFilter, searchQuery, onSearchChange }) {
+export default function Sidebar({ activeTab, onTabChange, ads, onEdit, formData, setFormData, onSubmit, onCancel, filters, setFilters, onFilter, searchQuery, onSearchChange, collapsed, onToggleCollapse }) {
+  if (collapsed) {
+    return (
+      <aside style={{
+        width: '40px', minWidth: '40px', background: colors.bgCard,
+        borderRight: `1px solid ${colors.border}`, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', paddingTop: '8px',
+      }}>
+        <button onClick={onToggleCollapse} title="Expandir menu"
+          style={{
+            width: '32px', height: '32px', borderRadius: '6px', border: `1px solid ${colors.border}`,
+            background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: colors.textSec, fontSize: '14px', lineHeight: 1,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.target.style.background = colors.blueLight; e.target.style.borderColor = colors.blue; e.target.style.color = colors.blue; }}
+          onMouseLeave={(e) => { e.target.style.background = '#FFF'; e.target.style.borderColor = colors.border; e.target.style.color = colors.textSec; }}
+        >▶</button>
+      </aside>
+    );
+  }
+
   return (
     <aside style={{
       width: '340px', minWidth: '340px', background: colors.bgCard,
       borderRight: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column',
-      overflowY: 'auto',
+      overflowY: 'auto', transition: 'width 0.2s',
     }}>
+      {/* header with collapse button */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 8px 0 12px', background: '#FAFAFA', borderBottom: `1px solid ${colors.border}`,
+      }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {activeTab === 'list' ? 'Meus Anúncios' : activeTab === 'create' ? (formData.id ? 'Editar Anúncio' : 'Novo Anúncio') : 'Pesquisar'}
+        </span>
+        <button onClick={onToggleCollapse} title="Recolher menu"
+          style={{
+            width: '28px', height: '28px', borderRadius: '4px', border: 'none',
+            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: colors.textTer, fontSize: '13px', lineHeight: 1,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.target.style.background = colors.border; e.target.style.color = colors.text; }}
+          onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = colors.textTer; }}
+        >◀</button>
+      </div>
+
       {/* Navigation tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, background: '#FAFAFA' }}>
         <TabBtn icon="📋" label="Anúncios" active={activeTab === 'list'} onClick={() => onTabChange('list')} />
