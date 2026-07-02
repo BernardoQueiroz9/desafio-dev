@@ -180,16 +180,22 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
         borderRight: `1px solid ${colors.border}`, display: 'flex',
         flexDirection: 'column', alignItems: 'center', paddingTop: '8px',
       }}>
-        <button onClick={onToggleCollapse} title="Expandir filtros"
+        <button onClick={onToggleCollapse} title="Abrir filtros"
           style={{
             width: '32px', height: '32px', borderRadius: '6px', border: `1px solid ${colors.border}`,
             background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: colors.textSec, fontSize: '14px', lineHeight: 1,
+            justifyContent: 'center', color: colors.textSec,
             transition: 'all 0.15s',
           }}
           onMouseEnter={(e) => { e.target.style.background = colors.blueLight; e.target.style.borderColor = colors.blue; e.target.style.color = colors.blue; }}
           onMouseLeave={(e) => { e.target.style.background = '#FFF'; e.target.style.borderColor = colors.border; e.target.style.color = colors.textSec; }}
-        >▶</button>
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
       </aside>
     );
   }
@@ -210,16 +216,21 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
         padding: '12px 12px 8px',
       }}>
         <span style={{ fontSize: '15px', fontWeight: 700, color: colors.text }}>Filtros</span>
-        <button onClick={onToggleCollapse} title="Recolher filtros"
+        <button onClick={onToggleCollapse} title="Fechar filtros"
           style={{
             width: '28px', height: '28px', borderRadius: '4px', border: 'none',
             background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: colors.textTer, fontSize: '13px', lineHeight: 1,
+            justifyContent: 'center', color: colors.textTer,
             transition: 'all 0.15s',
           }}
           onMouseEnter={(e) => { e.target.style.background = colors.border; e.target.style.color = colors.text; }}
           onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = colors.textTer; }}
-        >◀</button>
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
       <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

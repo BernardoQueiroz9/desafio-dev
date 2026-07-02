@@ -3,7 +3,7 @@ import { useState } from 'react';
 const styles = {
   header: {
     background: 'var(--ml-yellow)',
-    padding: '8px 0',
+    padding: '12px 0',
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -15,7 +15,7 @@ const styles = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
   },
   logo: {
     fontSize: '22px',

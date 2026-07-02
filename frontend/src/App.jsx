@@ -418,7 +418,7 @@ function Dashboard() {
       <div style={{
         display: 'flex',
         flex: 1,
-        maxWidth: view === 'grid' ? '1200px' : '100%',
+        maxWidth: view === 'grid' ? '1400px' : '100%',
         width: '100%',
         margin: '0 auto',
         background: 'var(--ml-bg)',
@@ -426,7 +426,7 @@ function Dashboard() {
         {/* Sidebar only in grid view */}
         {view === 'grid' && (
           <>
-            <div className={`sidebar-desktop${sidebarOpen ? ' open' : ''}`} style={{ display: 'flex' }}>
+            <div className={`sidebar-desktop${sidebarOpen ? ' open' : ''}`}>
               <Sidebar
                 filters={filters}
                 setFilters={setFilters}
@@ -456,7 +456,7 @@ function Dashboard() {
 
         {/* Grid view */}
         {view === 'grid' && (
-          <main style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
+          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
             {ads.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
