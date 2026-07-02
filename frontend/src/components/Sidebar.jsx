@@ -148,8 +148,8 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
   const sliderMin = 0;
 
   const rangeVal = {
-    min: numMin,
-    max: numMax || sliderMax,
+    min: Math.min(numMin, numMax || sliderMax),
+    max: Math.max(numMin, numMax || sliderMax),
   };
 
   const handleRangeChange = (val) => {
@@ -160,34 +160,16 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
 
   const handleInputChange = (field) => (e) => {
     const raw = e.target.value.replace(/[^\d,.]/g, '');
-    const num = parseBr(raw);
-    if (field === 'min') {
-      const nextMax = parseBr(filters.maxPrice);
-      if (!isNaN(num) && num > nextMax && nextMax > 0) {
-        setFilters({ minPrice: raw, maxPrice: raw });
-      } else {
-        setFilters({ ...filters, minPrice: raw });
-      }
-    } else {
-      const nextMin = parseBr(filters.minPrice);
-      if (!isNaN(num) && num < nextMin && nextMin > 0) {
-        setFilters({ minPrice: raw, maxPrice: raw });
-      } else {
-        setFilters({ ...filters, maxPrice: raw });
-      }
-    }
+    const key = field === 'min' ? 'minPrice' : 'maxPrice';
+    setFilters({ ...filters, [key]: raw });
   };
 
   const handleInputBlur = (field) => (e) => {
     e.target.style.borderColor = colors.border;
-    const num = field === 'min' ? parseBr(filters.minPrice) : parseBr(filters.maxPrice);
+    const key = field === 'min' ? 'minPrice' : 'maxPrice';
+    const num = parseBr(filters[key]);
     if (num > 0) {
-      const str = num.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-      if (field === 'min') {
-        setFilters({ ...filters, minPrice: str });
-      } else {
-        setFilters({ ...filters, maxPrice: str });
-      }
+      setFilters({ ...filters, [key]: num.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) });
     }
   };
 
