@@ -47,7 +47,8 @@ function Login() {
     }
 
     if (params.get('error')) {
-      setError('Erro ao autenticar com Mercado Livre. Tente novamente.');
+      setError(decodeURIComponent(params.get('error')));
+      navigate('/', { replace: true });
     }
 
     if (localStorage.getItem('token') && localStorage.getItem('userId')) {
