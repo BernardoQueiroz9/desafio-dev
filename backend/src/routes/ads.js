@@ -132,4 +132,15 @@ router.put('/:id', checkAuth, async (req, res) => {
   }
 });
 
+router.delete('/:id', checkAuth, async (req, res) => {
+  try {
+    const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
+    if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
+    await Ad.deleteOne({ _id: req.params.id });
+    res.json({ message: 'Anúncio removido' });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Erro ao remover anúncio' });
+  }
+});
+
 module.exports = router;
