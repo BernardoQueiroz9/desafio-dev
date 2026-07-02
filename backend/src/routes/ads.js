@@ -48,9 +48,13 @@ router.post('/', checkAuth, async (req, res) => {
 
 router.get('/', checkAuth, async (req, res) => {
   try {
-    const { minPrice, maxPrice } = req.query;
+    const { minPrice, maxPrice, search } = req.query;
     let filter = { user: req.userId };
     
+    if (search) {
+      filter.title = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    }
+
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
