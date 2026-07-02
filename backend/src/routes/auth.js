@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
+const { sendLoginNotification } = require('../services/email');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
@@ -55,9 +56,25 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
 
+    sendLoginNotification(user.email, user.name).catch(err => {
+      console.error('Erro ao enviar email:', err.message);
+    });
+
     res.json({ userId: user._id, name: user.name });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao fazer login' });
+  }
+});
+
+router.get('/check-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ error: 'Email é obrigatório' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    res.json({ exists: !!user });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao verificar email' });
   }
 });
 

@@ -49,6 +49,12 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 | `MONGO_URI` | String de conexão MongoDB Atlas | (usa mongodb-memory-server) |
 | `FRONTEND_URL` | Origem permitida no CORS | `http://localhost:5173` |
 | `BACKEND_URL` | URL base do próprio backend | `http://localhost:3000` |
+| `SMTP_HOST` | Servidor SMTP (ex: smtp.gmail.com) | — |
+| `SMTP_PORT` | Porta SMTP | `587` |
+| `SMTP_USER` | Email do remetente | — |
+| `SMTP_PASS` | Senha de app ou senha SMTP | — |
+
+> Para enviar emails reais, configure as variáveis SMTP. No Gmail, gere uma senha de app em https://myaccount.google.com/apppasswords. Sem essas variáveis, o login funciona normalmente sem envio de email.
 
 ### Frontend (`frontend/.env`)
 
@@ -67,6 +73,7 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 - Sincronização com marketplace simulado (detecção de divergências)
 - Sidebar colapsável
 - "Lembrar de mim" no login
+- Notificação de login por email (via SMTP — Gmail, Outlook etc.)
 
 ## Estrutura do projeto
 
