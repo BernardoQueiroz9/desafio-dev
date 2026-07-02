@@ -66,7 +66,7 @@ router.get('/', checkAuth, async (req, res) => {
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    const ads = await Ad.find(filter).sort({ createdAt: -1 });
+    const ads = await Ad.find(filter).populate('user', 'name').sort({ createdAt: -1 });
     res.json(ads);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao listar anúncios' });

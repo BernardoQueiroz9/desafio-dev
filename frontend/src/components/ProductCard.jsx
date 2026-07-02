@@ -116,6 +116,11 @@ export default function ProductCard({ ad }) {
           {formatPrice(ad.price)}
         </div>
         <h3 style={styles.title}>{ad.title}</h3>
+        {ad.user?.name && (
+          <span style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginTop: '2px' }}>
+            Anunciado por: {ad.user.name}
+          </span>
+        )}
         <div style={styles.shippingBadge}>
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
             <path d="M8 1L11 4.5L8 8L5 4.5L8 1Z" fill="currentColor"/>
