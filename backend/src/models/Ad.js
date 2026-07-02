@@ -9,4 +9,6 @@ const AdSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
+AdSchema.index({ user: 1, title: 1 });
+
 module.exports = mongoose.model('Ad', AdSchema);

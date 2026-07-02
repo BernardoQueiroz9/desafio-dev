@@ -50,9 +50,10 @@ router.get('/', checkAuth, async (req, res) => {
   try {
     const { minPrice, maxPrice, search } = req.query;
     let filter = { user: req.userId };
-    
+
     if (search) {
-      filter.title = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.title = { $regex: escaped, $options: 'i' };
     }
 
     if (minPrice || maxPrice) {
