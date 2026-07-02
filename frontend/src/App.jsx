@@ -457,9 +457,9 @@ function Dashboard() {
     };
 
     return (
-      <div style={{ flex: 1, padding: '24px', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: colors.text, margin: 0 }}>
+      <div style={{ padding: '0', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: 0 }}>
             {formData.id ? 'Editar Anúncio' : 'Novo Anúncio'}
           </h2>
           <button onClick={() => { resetForm(); setView('my-ads'); }}
@@ -577,10 +577,10 @@ function Dashboard() {
     };
 
     return (
-      <div style={{ flex: 1, padding: '24px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div style={{ padding: '0', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Meus Anúncios</h2>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Meus Anúncios</h2>
             <p style={{ fontSize: '13px', color: colors.textTer, margin: 0 }}>{myAds.length} anúncio{myAds.length !== 1 ? 's' : ''}</p>
           </div>
           <button onClick={() => { resetForm(); setView('form'); }}
@@ -729,10 +729,22 @@ function Dashboard() {
         )}
 
         {/* My Ads page */}
-        {view === 'my-ads' && <MyAdsPage />}
+        {view === 'my-ads' && (
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
+            <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
+              <MyAdsPage />
+            </div>
+          </div>
+        )}
 
         {/* Form page */}
-        {view === 'form' && <AdFormPage />}
+        {view === 'form' && (
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
+            <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
+              <AdFormPage />
+            </div>
+          </div>
+        )}
       </div>
 
       {syncData && (
