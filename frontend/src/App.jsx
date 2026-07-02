@@ -473,7 +473,7 @@ function Dashboard() {
         width: '100%',
         background: 'var(--ml-bg)',
       }}>
-        {view === 'grid' && (
+        {(view === 'grid' || view === 'product-detail') && (
           <>
             <div className={`sidebar-desktop${sidebarOpen ? ' open' : ''}`}>
               <Sidebar

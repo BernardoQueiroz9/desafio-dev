@@ -34,6 +34,7 @@
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 #root {
@@ -179,7 +180,43 @@ img {
   z-index: 50;
 }
 
+/* ─── Header ─── */
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.header-search-wrap {
+  display: flex;
+  overflow: hidden;
+}
+
+.header-search-close {
+  display: none;
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-mobile-search-toggle {
+  display: none;
+}
+
+/* ─── Mobile (<769) ─── */
+
 @media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Sidebar */
   .menu-toggle-btn {
     display: flex;
   }
@@ -202,57 +239,66 @@ img {
     box-shadow: 4px 0 20px rgba(0,0,0,0.2);
   }
 
+  /* Header */
+  header {
+    overflow-x: hidden;
+  }
+
+  .header-inner {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .header-nav-icon {
     display: flex !important;
   }
 
+  .header-mobile-search-toggle {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
   .header-search-wrap {
-    width: 100% !important;
+    width: 100%;
     max-width: 100% !important;
     min-width: 0 !important;
     order: 10;
-  }
-
-  .header-search-expanded {
-    order: 0 !important;
-    flex: 1 1 100% !important;
-  }
-
-  .header-search-expanded .header-search-close {
-    display: flex !important;
   }
 
   .header-search-nogrid {
     display: flex !important;
   }
 
+  .header-search-expanded {
+    order: 0 !important;
+  }
+
+  .header-search-expanded .header-search-close {
+    display: flex !important;
+  }
+
+  .header-right-group {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
   .header-username {
     display: none;
   }
 
-  .header-mobile-search-toggle {
-    display: flex !important;
-  }
-
-  .header-desktop-items {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .header-inner.search-open .header-desktop-items {
+  /* Hide items when search is open */
+  .header-search-active .header-mobile-search-toggle,
+  .header-search-active .header-right-group,
+  .header-search-active .header-clear-btn {
     display: none !important;
   }
 
-  .header-inner.search-open .header-mobile-search-toggle {
-    display: none !important;
-  }
-
-  .header-inner.search-open .header-search-expanded {
+  .header-search-active .header-search-wrap {
     display: flex !important;
   }
 
+  /* Cards */
   .login-card {
     padding: 28px 20px !important;
   }
@@ -311,6 +357,8 @@ img {
   }
 }
 
+/* ─── Mobile small (<480) ─── */
+
 @media (max-width: 480px) {
   .product-grid {
     grid-template-columns: 1fr !important;
@@ -321,7 +369,7 @@ img {
   }
 }
 
-
+/* ─── Desktop (≥769) ─── */
 
 @media (min-width: 769px) {
   .sidebar-desktop {
@@ -338,6 +386,12 @@ img {
 
   .header-mobile-search-toggle {
     display: none !important;
+  }
+
+  .header-search-wrap {
+    flex: 1 1 auto;
+    max-width: 640px;
+    min-width: 160px;
   }
 }
 

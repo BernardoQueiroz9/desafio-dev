@@ -16,15 +16,13 @@ const styles = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
+    gap: '16px',
     position: 'relative',
   },
   logo: {
     fontSize: '22px',
     fontWeight: 700,
     color: '#333',
-    textDecoration: 'none',
     whiteSpace: 'nowrap',
     letterSpacing: '-0.5px',
     cursor: 'pointer',
@@ -36,25 +34,66 @@ const styles = {
   logoAccent: {
     color: 'var(--ml-blue)',
   },
+  searchGroup: {
+    flex: '1 1 auto',
+    display: 'flex',
+    maxWidth: '640px',
+    minWidth: '160px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
   searchInput: {
     flex: 1,
     border: 'none',
-    padding: '9px 12px',
+    padding: '9px 14px',
     fontSize: '14px',
     outline: 'none',
     color: '#333',
     background: '#fff',
     minWidth: 0,
   },
-  searchButton: {
+  searchBtn: {
     background: 'var(--ml-blue)',
     border: 'none',
-    padding: '0 14px',
+    padding: '0 16px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'background 0.15s',
+    flexShrink: 0,
+  },
+  searchCloseBtn: {
+    background: 'transparent',
+    border: 'none',
+    padding: '0 10px',
+    cursor: 'pointer',
+    display: 'none',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#999',
+  },
+  rightGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+  },
+  navBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#333',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 600,
+    padding: '6px 10px',
+    borderRadius: '4px',
+    whiteSpace: 'nowrap',
+    transition: 'background 0.15s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
     flexShrink: 0,
   },
   syncBtn: {
@@ -86,22 +125,6 @@ const styles = {
     whiteSpace: 'nowrap',
     flexShrink: 0,
   },
-  navBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#333',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
-    padding: '6px 10px',
-    borderRadius: '4px',
-    whiteSpace: 'nowrap',
-    transition: 'background 0.15s',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    flexShrink: 0,
-  },
   logoutBtn: {
     background: 'transparent',
     border: 'none',
@@ -117,17 +140,19 @@ const styles = {
     gap: '6px',
     flexShrink: 0,
   },
-  iconBtn: {
-    background: 'transparent',
+  mobileSearchBtn: {
+    background: 'var(--ml-blue)',
     border: 'none',
-    color: '#333',
     cursor: 'pointer',
-    padding: '8px',
-    borderRadius: '4px',
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    color: '#fff',
     flexShrink: 0,
+    transition: 'background 0.15s',
   },
 };
 
@@ -138,7 +163,6 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
   const [hoverSync, setHoverSync] = useState(false);
   const [hoverNav, setHoverNav] = useState({});
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const searchRef = useRef(null);
   const searchInputRef = useRef(null);
 
   useEffect(() => {
@@ -158,10 +182,11 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
     if (onSearch) onSearch('');
   };
 
-  const isGridView = currentView === 'grid';
+  const showNavExtra = currentView === 'grid' || currentView === 'product-detail';
+  const showSync = showNavExtra;
 
   const handleNavClick = () => {
-    if (isGridView) {
+    if (showNavExtra) {
       navigate('/dashboard/meus-anuncios');
     } else {
       navigate(-1);
@@ -169,8 +194,9 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
   };
 
   return (
-    <header style={styles.header}>
-      <div style={styles.inner} className={`header-inner${mobileSearchOpen ? ' search-open' : ''}`}>
+    <header style={styles.header} className={mobileSearchOpen ? 'header-search-active' : ''}>
+      <div style={styles.inner} className="header-inner">
+
         <button onClick={() => navigate('/dashboard')} style={styles.logo} title="Ver anúncios">
           Desafio<span style={styles.logoAccent}>ML</span>
         </button>
@@ -178,27 +204,20 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
         <div className="header-mobile-search-toggle">
           <button
             onClick={() => setMobileSearchOpen(true)}
-            style={styles.iconBtn}
+            style={styles.mobileSearchBtn}
             aria-label="Abrir busca"
             title="Buscar"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className={`header-search-wrap${isGridView ? '' : ' header-search-nogrid'}${mobileSearchOpen ? ' header-search-expanded' : ''}`}
-          ref={searchRef}
+        <div className={`header-search-wrap${showNavExtra ? '' : ' header-search-nogrid'}${mobileSearchOpen ? ' header-search-expanded' : ''}`}
           style={{
-            flex: 1,
-            display: 'flex',
-            maxWidth: '600px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            minWidth: '180px',
+            ...styles.searchGroup,
           }}
         >
           <input
@@ -209,7 +228,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
             onChange={(e) => setLocalValue(e.target.value)}
             aria-label="Buscar produtos"
           />
-          <button type="submit" style={styles.searchButton} aria-label="Buscar"
+          <button type="submit" onClick={handleSubmit} style={styles.searchBtn} aria-label="Buscar"
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ml-blue-dark)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--ml-blue)'; }}
           >
@@ -220,16 +239,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           </button>
           <button type="button" className="header-search-close"
             onClick={() => setMobileSearchOpen(false)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '0 10px',
-              cursor: 'pointer',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#999',
-            }}
+            style={styles.searchCloseBtn}
             aria-label="Fechar busca"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -237,15 +247,15 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-        </form>
+        </div>
 
-        <div className="header-desktop-items">
-          {isGridView && localValue && (
-            <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px' }}>
-              Limpar
-            </button>
-          )}
+        {showNavExtra && localValue && (
+          <button onClick={handleClear} style={{ ...styles.logoutBtn, fontSize: '12px', color: 'var(--ml-text-tertiary)', padding: '6px 8px', flexShrink: 0 }}>
+            Limpar
+          </button>
+        )}
 
+        <div className="header-right-group" style={styles.rightGroup}>
           <button
             onClick={handleNavClick}
             style={{
@@ -254,11 +264,11 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
             }}
             onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
             onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
-            title={isGridView ? 'Meus Anúncios' : 'Voltar'}
+            title={showNavExtra ? 'Meus Anúncios' : 'Voltar'}
           >
-            <span className="header-nav-text">{isGridView ? 'Meus Anúncios' : '← Voltar'}</span>
+            <span className="header-nav-text">{showNavExtra ? 'Meus Anúncios' : '← Voltar'}</span>
             <span className="header-nav-icon">
-              {isGridView ? (
+              {showNavExtra ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="7" height="7" rx="1"/>
                   <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -274,7 +284,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
             </span>
           </button>
 
-          {isGridView && onSync && (
+          {showSync && onSync && (
             <button
               style={{
                 ...styles.syncBtn,
