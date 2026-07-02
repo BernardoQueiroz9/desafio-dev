@@ -245,8 +245,8 @@ img {
   }
 
   .header-inner {
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .header-nav-icon {
@@ -259,22 +259,16 @@ img {
     flex-shrink: 0;
   }
 
-  .header-search-wrap {
-    width: 100%;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    order: 10;
+  .header-search-wrap:not(.header-search-expanded) {
+    display: none !important;
   }
 
-  .header-search-nogrid {
+  .header-search-wrap.header-search-expanded {
     display: flex !important;
+    width: 100%;
   }
 
-  .header-search-expanded {
-    order: 0 !important;
-  }
-
-  .header-search-expanded .header-search-close {
+  .header-search-wrap.header-search-expanded .header-search-close {
     display: flex !important;
   }
 
