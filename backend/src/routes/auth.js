@@ -47,7 +47,7 @@ router.get('/ml/callback', async (req, res) => {
     let user = await User.findOne({ ml_user_id: String(user_id) });
     if (user) {
       user.ml_access_token = access_token;
-      user.ml_refresh_token = refresh_token;
+      if (refresh_token) user.ml_refresh_token = refresh_token;
       user.ml_token_expires_at = new Date(Date.now() + expires_in * 1000);
       user.name = name;
       if (email) user.email = email;
@@ -57,7 +57,7 @@ router.get('/ml/callback', async (req, res) => {
         email,
         ml_user_id: String(user_id),
         ml_access_token: access_token,
-        ml_refresh_token: refresh_token,
+        ...(refresh_token && { ml_refresh_token: refresh_token }),
         ml_token_expires_at: new Date(Date.now() + expires_in * 1000),
       });
     }

@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, default: '' },
   ml_user_id: { type: String, required: true, unique: true },
   ml_access_token: { type: String, required: true },
-  ml_refresh_token: { type: String, required: true },
+  ml_refresh_token: { type: String, default: '' },
   ml_token_expires_at: { type: Date, required: true },
 }, { timestamps: true });
 

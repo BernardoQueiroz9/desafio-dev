@@ -8,6 +8,7 @@ function getAuthUrl(redirectUri, state) {
     response_type: 'code',
     client_id: process.env.ML_CLIENT_ID,
     redirect_uri: redirectUri,
+    scope: 'read write offline_access',
   });
   if (state) params.set('state', state);
   return `${AUTH_BASE}/authorization?${params.toString()}`;
