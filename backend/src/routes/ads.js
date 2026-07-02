@@ -10,6 +10,8 @@ const checkAuth = (req, res, next) => {
   next();
 };
 
+const BACKEND_BASE = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
+
 const fetchWithRetry = async (url, data, method = 'post', retries = 3) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -25,7 +27,7 @@ router.post('/', checkAuth, async (req, res) => {
   try {
     const { title, price, available_quantity, image } = req.body;
 
-    const mlResponse = await fetchWithRetry(`${process.env.BACKEND_URL}/mock/items`, req.body);
+    const mlResponse = await fetchWithRetry(`${BACKEND_BASE}/mock/items`, req.body);
     
     const newAd = new Ad({
       ml_id: mlResponse.data.id,
@@ -36,7 +38,11 @@ router.post('/', checkAuth, async (req, res) => {
     await newAd.save();
     res.status(201).json(newAd);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao criar anúncio no marketplace' });
+    console.error('Erro ao criar anúncio:', error.message);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message || 'Erro ao criar anúncio' });
   }
 });
 
@@ -61,11 +67,10 @@ router.get('/', checkAuth, async (req, res) => {
 router.post('/sync', checkAuth, async (req, res) => {
   try {
     const ads = await Ad.find({ user: req.userId });
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
     const results = await Promise.all(ads.map(async (ad) => {
       try {
-        const mlRes = await axios.get(`${BACKEND_URL}/mock/items/${ad.ml_id}/state`, {
+        const mlRes = await axios.get(`${BACKEND_BASE}/mock/items/${ad.ml_id}/state`, {
           params: { title: ad.title, price: ad.price, available_quantity: ad.available_quantity },
           timeout: 5000,
         });
@@ -100,7 +105,7 @@ router.put('/:id', checkAuth, async (req, res) => {
 
     if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
 
-    await fetchWithRetry(`${process.env.BACKEND_URL}/mock/items/${ad.ml_id}`, req.body, 'put');
+    await fetchWithRetry(`${BACKEND_BASE}/mock/items/${ad.ml_id}`, req.body, 'put');
 
     ad.title = title;
     ad.price = price;
@@ -113,7 +118,8 @@ router.put('/:id', checkAuth, async (req, res) => {
     if (error.name === 'VersionError') {
       return res.status(409).json({ error: 'Conflito: O anúncio foi modificado por outro processo.' });
     }
-    res.status(500).json({ error: 'Erro ao atualizar' });
+    console.error('Erro ao atualizar anúncio:', error.message);
+    res.status(500).json({ error: error.message || 'Erro ao atualizar' });
   }
 });
 

@@ -357,7 +357,9 @@ function Dashboard() {
       setView('my-ads');
       fetchAds();
     } catch (err) {
-      alert(err.response?.data?.error || 'Erro na requisição');
+      const msg = err.response?.data?.error || err.message || 'Erro na requisição';
+      console.error('Submit error:', err);
+      alert(msg);
     }
   };
 

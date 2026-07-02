@@ -14,7 +14,7 @@ const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173'
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 
 app.use('/mock', mockRoutes); 
