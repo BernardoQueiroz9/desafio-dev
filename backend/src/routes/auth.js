@@ -1,6 +1,5 @@
 const express = require('express');
 const User = require('../models/User');
-const { sendWelcomeEmail } = require('../services/email');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
@@ -30,8 +29,6 @@ router.post('/register', async (req, res) => {
     }
 
     const user = await User.create({ name, email, password });
-
-    sendWelcomeEmail(user.email, user.name);
 
     res.status(201).json({ userId: user._id, name: user.name });
   } catch (error) {

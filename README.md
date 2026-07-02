@@ -49,13 +49,6 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 | `MONGO_URI` | String de conexão MongoDB Atlas | (usa mongodb-memory-server) |
 | `FRONTEND_URL` | Origem permitida no CORS | `http://localhost:5173` |
 | `BACKEND_URL` | URL base do próprio backend | `http://localhost:3000` |
-| `SMTP_HOST` | Servidor SMTP (ex: smtp.gmail.com) | — |
-| `SMTP_PORT` | Porta SMTP | `587` |
-| `SMTP_USER` | Email do remetente | — |
-| `SMTP_PASS` | Senha de app ou senha SMTP | — |
-
-> Por padrão, utiliza o serviço **Ethereal** (SMTP fake) — os emails são capturados e podem ser visualizados pelo link exibido no console do backend. Para enviar emails reais, configure as variáveis SMTP com os dados do seu provedor (ex: Gmail com senha de app em https://myaccount.google.com/apppasswords).
-
 ### Frontend (`frontend/.env`)
 
 | Variável | Descrição | Padrão |
@@ -73,7 +66,6 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 - Sincronização com marketplace simulado (detecção de divergências)
 - Sidebar colapsável
 - "Lembrar de mim" no login
-- Notificação de login por email (via SMTP — Gmail, Outlook etc.)
 
 ## Estrutura do projeto
 
