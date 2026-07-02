@@ -54,7 +54,7 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 | `SMTP_USER` | Email do remetente | — |
 | `SMTP_PASS` | Senha de app ou senha SMTP | — |
 
-> Para enviar emails reais, configure as variáveis SMTP. No Gmail, gere uma senha de app em https://myaccount.google.com/apppasswords. Sem essas variáveis, o login funciona normalmente sem envio de email.
+> Por padrão, utiliza o serviço **Ethereal** (SMTP fake) — os emails são capturados e podem ser visualizados pelo link exibido no console do backend. Para enviar emails reais, configure as variáveis SMTP com os dados do seu provedor (ex: Gmail com senha de app em https://myaccount.google.com/apppasswords).
 
 ### Frontend (`frontend/.env`)
 
