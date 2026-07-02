@@ -232,6 +232,7 @@ function Dashboard() {
   const [formData, setFormData] = useState({
     id: null, title: '', price: '', available_quantity: '', image: ''
   });
+  const [sidebarTab, setSidebarTab] = useState('list');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -341,14 +342,27 @@ function Dashboard() {
     fetchAds(filters, query);
   };
 
+  const handleSearchChange = (query) => {
+    setSearchQuery(query);
+  };
+
   const handleFilter = (overrideFilters) => {
     const f = overrideFilters || filters;
     fetchAds(f, searchQuery);
   };
 
-  const filteredAds = searchQuery
-    ? ads.filter(ad => ad.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : ads;
+  const handleEditAd = (ad) => {
+    setFormData({
+      id: ad._id,
+      title: ad.title,
+      price: ad.price != null
+        ? Number(ad.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '',
+      available_quantity: ad.available_quantity ?? '',
+      image: ad.image || '',
+    });
+    setSidebarTab('create');
+  };
 
   const hasDivergences = syncData && syncData.divergences.length > 0;
 
@@ -377,6 +391,10 @@ function Dashboard() {
           style={{ display: 'flex' }}
         >
           <Sidebar
+            activeTab={sidebarTab}
+            onTabChange={setSidebarTab}
+            ads={ads}
+            onEdit={handleEditAd}
             formData={formData}
             setFormData={setFormData}
             onSubmit={handleSubmit}
@@ -384,6 +402,8 @@ function Dashboard() {
             filters={filters}
             setFilters={setFilters}
             onFilter={handleFilter}
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
           />
         </div>
 
@@ -418,7 +438,7 @@ function Dashboard() {
           padding: '16px',
           overflowY: 'auto',
         }}>
-          {filteredAds.length === 0 ? (
+          {ads.length === 0 ? (
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -453,7 +473,7 @@ function Dashboard() {
                 gap: '8px',
               }}>
                 <span>
-                  {filteredAds.length} {filteredAds.length === 1 ? 'resultado' : 'resultados'}
+                  {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
                   {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
                 </span>
               </div>
@@ -462,7 +482,7 @@ function Dashboard() {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
                 gap: '16px',
               }}>
-                {filteredAds.map(ad => (
+                {ads.map(ad => (
                   <ProductCard key={ad._id} ad={ad} />
                 ))}
               </div>
