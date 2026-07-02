@@ -73,8 +73,9 @@ router.get('/ml/callback', async (req, res) => {
       `${FRONTEND_URL}/?token=${jwtToken}&userId=${user._id}&userName=${encodeURIComponent(name)}`
     );
   } catch (err) {
-    console.error('ML callback error:', err.response?.data || err.message);
-    res.redirect(`${FRONTEND_URL}/?error=callback_failed`);
+    const msg = err.response?.data?.error || err.response?.data?.message || err.message;
+    console.error('ML callback error:', msg);
+    res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
   }
 });
 
