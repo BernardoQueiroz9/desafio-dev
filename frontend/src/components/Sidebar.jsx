@@ -303,7 +303,7 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
         display: 'flex', flexDirection: 'column', gap: '4px',
       }}>
         {(currentView === 'grid' || currentView === 'product-detail') && (
-          <button onClick={() => { if (onNavigate) onNavigate('my-ads'); }} style={{
+          <button onClick={() => { if (onNavigate) onNavigate('/dashboard/meus-anuncios'); }} style={{
             width: '100%', padding: '10px 12px', borderRadius: '6px', border: 'none',
             background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center',
             gap: '10px', fontSize: '14px', color: colors.text, fontWeight: 500,

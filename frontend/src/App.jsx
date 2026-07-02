@@ -488,7 +488,7 @@ function Dashboard() {
                 onToggleCollapse={() => setSidebarOpen(v => !v)}
                 currentView={view}
                 onNavigate={navigate}
-                onSync={onSync}
+                onSync={handleSync}
                 syncing={syncing}
                 hasDivergences={hasDivergences}
                 userName={userName}
