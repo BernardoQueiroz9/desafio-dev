@@ -12,10 +12,15 @@ const colors = {
   bgBody: '#FAFAFA',
 };
 
-const formatCurrency = (num) => {
+const fmt = (num) => {
   if (num == null || isNaN(num)) return 'R$ 0,00';
   return Number(num).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
+
+function parseBr(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+}
 
 function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
   const trackRef = useRef(null);
@@ -60,8 +65,8 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
   return (
     <div style={{ padding: '8px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: colors.textTer, marginBottom: '6px' }}>
-        <span>{formatCurrency(value.min)}</span>
-        <span>{formatCurrency(value.max)}</span>
+        <span>{fmt(value.min)}</span>
+        <span>{fmt(value.max)}</span>
       </div>
       <div
         ref={trackRef}
@@ -95,7 +100,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
           style={{
             position: 'absolute',
             top: '50%',
-            left: `${pctMin}%`,
+            left: `${Math.max(0, Math.min(100, pctMin))}%`,
             width: '18px',
             height: '18px',
             background: '#FFF',
@@ -112,7 +117,7 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
           style={{
             position: 'absolute',
             top: '50%',
-            left: `${pctMax}%`,
+            left: `${Math.max(0, Math.min(100, pctMax))}%`,
             width: '18px',
             height: '18px',
             background: '#FFF',
@@ -127,22 +132,63 @@ function RangeSlider({ value, onChange, rangeMin = 0, rangeMax = 10000 }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: colors.textTer, marginTop: '4px' }}>
         <span>R$ 0</span>
-        <span>R$ 10.000</span>
+        <span>R$ {rangeMax.toLocaleString('pt-BR')}</span>
       </div>
     </div>
   );
 }
 
 export default function Sidebar({ filters, setFilters, onFilter, collapsed, onToggleCollapse }) {
+  const rawMin = filters.minPrice || '';
+  const rawMax = filters.maxPrice || '';
+  const numMin = parseBr(rawMin);
+  const numMax = parseBr(rawMax);
+
+  const sliderMax = Math.max(10000, numMax, numMin + 1);
+  const sliderMin = 0;
+
   const rangeVal = {
-    min: filters.minPrice ? Number(filters.minPrice.replace(/\./g, '').replace(',', '.')) : 0,
-    max: filters.maxPrice ? Number(filters.maxPrice.replace(/\./g, '').replace(',', '.')) : 10000,
+    min: numMin,
+    max: numMax || sliderMax,
   };
 
   const handleRangeChange = (val) => {
     const minStr = val.min > 0 ? val.min.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '';
-    const maxStr = val.max < 10000 ? val.max.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '';
+    const maxStr = val.max > 0 ? val.max.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '';
     setFilters({ minPrice: minStr, maxPrice: maxStr });
+  };
+
+  const handleInputChange = (field) => (e) => {
+    const raw = e.target.value.replace(/[^\d,.]/g, '');
+    const num = parseBr(raw);
+    if (field === 'min') {
+      const nextMax = parseBr(filters.maxPrice);
+      if (!isNaN(num) && num > nextMax && nextMax > 0) {
+        setFilters({ minPrice: raw, maxPrice: raw });
+      } else {
+        setFilters({ ...filters, minPrice: raw });
+      }
+    } else {
+      const nextMin = parseBr(filters.minPrice);
+      if (!isNaN(num) && num < nextMin && nextMin > 0) {
+        setFilters({ minPrice: raw, maxPrice: raw });
+      } else {
+        setFilters({ ...filters, maxPrice: raw });
+      }
+    }
+  };
+
+  const handleInputBlur = (field) => (e) => {
+    e.target.style.borderColor = colors.border;
+    const num = field === 'min' ? parseBr(filters.minPrice) : parseBr(filters.maxPrice);
+    if (num > 0) {
+      const str = num.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      if (field === 'min') {
+        setFilters({ ...filters, minPrice: str });
+      } else {
+        setFilters({ ...filters, maxPrice: str });
+      }
+    }
   };
 
   if (collapsed) {
@@ -166,13 +212,17 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
     );
   }
 
+  const sharedInput = {
+    width: '100%', padding: '7px 8px', border: `1px solid ${colors.border}`, borderRadius: '4px',
+    fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: '#FFF', fontFamily: 'inherit',
+  };
+
   return (
     <aside style={{
       width: '300px', minWidth: '300px', background: colors.bgCard,
       borderRight: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column',
       overflowY: 'auto', transition: 'width 0.2s',
     }}>
-      {/* header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 12px 8px',
@@ -191,10 +241,33 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
       </div>
 
       <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Price range */}
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '12px', background: colors.bgCard }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: colors.textSec, marginBottom: '8px' }}>Faixa de preço</p>
-          <RangeSlider value={rangeVal} onChange={handleRangeChange} rangeMin={0} rangeMax={10000} />
+          <p style={{ fontSize: '12px', fontWeight: 600, color: colors.textSec, marginBottom: '10px' }}>Faixa de preço</p>
+
+          {/* Input fields row */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', color: colors.textTer, display: 'block', marginBottom: '2px' }}>Mín</label>
+              <input placeholder="0" value={rawMin}
+                onChange={handleInputChange('min')}
+                onBlur={handleInputBlur('min')}
+                onFocus={(e) => { e.target.style.borderColor = colors.blue; }}
+                style={sharedInput}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', color: colors.textTer, display: 'block', marginBottom: '2px' }}>Máx</label>
+              <input placeholder="10.000" value={rawMax}
+                onChange={handleInputChange('max')}
+                onBlur={handleInputBlur('max')}
+                onFocus={(e) => { e.target.style.borderColor = colors.blue; }}
+                style={sharedInput}
+              />
+            </div>
+          </div>
+
+          {/* Slider */}
+          <RangeSlider value={rangeVal} onChange={handleRangeChange} rangeMin={sliderMin} rangeMax={sliderMax} />
         </div>
 
         <button onClick={() => onFilter(filters)} style={{
@@ -218,4 +291,4 @@ export default function Sidebar({ filters, setFilters, onFilter, collapsed, onTo
   );
 }
 
-export { RangeSlider, formatCurrency };
+export { RangeSlider, fmt as formatCurrency };
