@@ -48,8 +48,12 @@ router.post('/', checkAuth, async (req, res) => {
 
 router.get('/', checkAuth, async (req, res) => {
   try {
-    const { minPrice, maxPrice, search } = req.query;
-    let filter = { user: req.userId };
+    const { minPrice, maxPrice, search, mine } = req.query;
+    let filter = {};
+
+    if (mine === 'true') {
+      filter.user = req.userId;
+    }
 
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -15,7 +15,7 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
   const fetchMyAds = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/ads');
+      const res = await api.get('/ads', { params: { mine: true } });
       setMyAds(res.data);
     } catch { /* ignore */ } finally {
       setLoading(false);
