@@ -4,6 +4,7 @@ const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
   text: '#333', textSec: '#666', textTer: '#999',
   border: '#E0E0E0', bgCard: '#FFF', bgBody: '#FAFAFA',
+  green: '#00A650',
 };
 
 const formatPrice = (v) => {
@@ -11,7 +12,7 @@ const formatPrice = (v) => {
   return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, onBack }) {
+export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }) {
   const [focused, setFocused] = useState(null);
   const [preview, setPreview] = useState(formData.image || '');
   const [imgTab, setImgTab] = useState('url');
@@ -100,8 +101,23 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, 
     outline: 'none', background: 'transparent', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
+  const toggleStyle = (active) => ({
+    flex: 1,
+    padding: '9px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: `1.5px solid ${active ? colors.blue : colors.border}`,
+    background: active ? colors.blueLight : '#FFF',
+    color: active ? colors.blue : colors.textSec,
+    textAlign: 'center',
+    transition: 'all 0.15s',
+    userSelect: 'none',
+  });
+
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%' }} className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: 0 }}>
           {formData.id ? 'Editar Anúncio' : 'Novo Anúncio'}
@@ -178,7 +194,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, 
           'Título do anúncio'
         )}
 
-        <div style={{ display: 'flex', gap: '14px' }}>
+        <div className="form-row" style={{ display: 'flex', gap: '14px' }}>
           <div style={{ flex: 1, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
             <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Preço</p>
             <input required placeholder="R$ 4.999,00" value={formData.price}
@@ -196,6 +212,60 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, 
           </div>
         </div>
 
+        {fieldCard(
+          <textarea
+            placeholder="Descreva os detalhes do produto: características, dimensões, material, garantia, etc."
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            style={{
+              ...inputStyle,
+              minHeight: '120px',
+              resize: 'vertical',
+              lineHeight: '1.5',
+              padding: '2px 0',
+            }}
+            onFocus={() => setFocused('desc')}
+            onBlur={() => setFocused(null)}
+          />,
+          'Detalhes do Produto'
+        )}
+
+        <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Opções de envio</p>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div
+              onClick={() => setFormData({ ...formData, free_shipping: !formData.free_shipping })}
+              style={toggleStyle(formData.free_shipping)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  {formData.free_shipping ? (
+                    <><polyline points="20 6 9 17 4 12"/></>
+                  ) : (
+                    <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>
+                  )}
+                </svg>
+                Frete Grátis
+              </div>
+            </div>
+            <div
+              onClick={() => setFormData({ ...formData, is_full: !formData.is_full })}
+              style={toggleStyle(formData.is_full)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  {formData.is_full ? (
+                    <><polyline points="20 6 9 17 4 12"/></>
+                  ) : (
+                    <><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>
+                  )}
+                </svg>
+                Full (Mercado Envios)
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="submit" style={{
             flex: 1, padding: '13px', borderRadius: '6px', border: 'none',
@@ -205,7 +275,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel, 
             onMouseLeave={(e) => { e.target.style.background = colors.blue; }}
           >{formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio'}</button>
 
-          <button type="button" onClick={() => { onCancel(); onBack(); }}
+          <button type="button" onClick={onCancel}
             style={{ padding: '13px 20px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: '#FFF', color: colors.textSec, fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
           >Cancelar</button>
         </div>

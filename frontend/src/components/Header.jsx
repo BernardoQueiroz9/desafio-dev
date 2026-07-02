@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const styles = {
   header: {
@@ -16,6 +17,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
+    flexWrap: 'wrap',
+    position: 'relative',
   },
   logo: {
     fontSize: '22px',
@@ -28,6 +31,7 @@ const styles = {
     background: 'none',
     border: 'none',
     fontFamily: 'inherit',
+    flexShrink: 0,
   },
   logoAccent: {
     color: 'var(--ml-blue)',
@@ -39,6 +43,7 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
     borderRadius: '4px',
     overflow: 'hidden',
+    minWidth: '180px',
   },
   searchInput: {
     flex: 1,
@@ -111,7 +116,8 @@ const styles = {
   },
 };
 
-export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView, onViewChange }) {
+export default function Header({ onSearch, searchValue, onLogout, userName, onSync, syncing, hasDivergences, currentView }) {
+  const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchValue || '');
   const [hoverLogout, setHoverLogout] = useState(false);
   const [hoverSync, setHoverSync] = useState(false);
@@ -132,12 +138,12 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
-        <button onClick={() => onViewChange('grid')} style={styles.logo} title="Ver anúncios">
+        <button onClick={() => navigate('/dashboard')} style={styles.logo} title="Ver anúncios">
           Desafio<span style={styles.logoAccent}>ML</span>
         </button>
 
         {isGridView && (
-          <form onSubmit={handleSubmit} style={styles.searchWrapper}>
+          <form onSubmit={handleSubmit} style={styles.searchWrapper} className={isGridView ? '' : 'header-search-form'}>
             <input
               style={styles.searchInput}
               placeholder="Buscar produtos..."
@@ -161,7 +167,7 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
         )}
 
         <button
-          onClick={() => onViewChange(isGridView ? 'my-ads' : 'grid')}
+          onClick={() => navigate(isGridView ? '/dashboard/meus-anuncios' : '/dashboard')}
           style={{
             ...styles.navBtn,
             background: hoverNav.main ? 'rgba(0,0,0,0.06)' : 'transparent',
@@ -169,7 +175,8 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           onMouseEnter={() => setHoverNav(p => ({ ...p, main: true }))}
           onMouseLeave={() => setHoverNav(p => ({ ...p, main: false }))}
         >
-          {isGridView ? 'Meus Anúncios' : '← Voltar'}
+          <span className="header-nav-text">{isGridView ? 'Meus Anúncios' : '← Voltar'}</span>
+          <span className="header-nav-icon" style={{ display: 'none' }}>{isGridView ? '📋' : '←'}</span>
         </button>
 
         {isGridView && onSync && (
@@ -205,8 +212,10 @@ export default function Header({ onSearch, searchValue, onLogout, userName, onSy
           }}
           onMouseEnter={() => setHoverLogout(true)}
           onMouseLeave={() => setHoverLogout(false)}
+          aria-label="Sair"
         >
-          Sair
+          <span className="header-nav-text">Sair</span>
+          <span className="header-nav-icon" style={{ display: 'none' }}>✕</span>
         </button>
       </div>
     </header>

@@ -26,13 +26,13 @@ const fetchWithRetry = async (url, data, method = 'post', retries = 3) => {
 
 router.post('/', checkAuth, async (req, res) => {
   try {
-    const { title, price, available_quantity, image } = req.body;
+    const { title, price, available_quantity, image, description, free_shipping, is_full } = req.body;
 
     const mlResponse = await fetchWithRetry(`${BACKEND_BASE}/mock/items`, req.body);
     
     const newAd = new Ad({
       ml_id: mlResponse.data.id,
-      title, price, available_quantity, image,
+      title, price, available_quantity, image, description, free_shipping, is_full,
       user: req.userId
     });
     
@@ -75,6 +75,16 @@ router.get('/', checkAuth, async (req, res) => {
   }
 });
 
+router.get('/:id', checkAuth, async (req, res) => {
+  try {
+    const ad = await Ad.findById(req.params.id);
+    if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
+    res.json(ad);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar anúncio' });
+  }
+});
+
 router.post('/sync', checkAuth, async (req, res) => {
   try {
     const ads = await Ad.find({ user: req.userId });
@@ -111,7 +121,7 @@ router.post('/sync', checkAuth, async (req, res) => {
 
 router.put('/:id', checkAuth, async (req, res) => {
   try {
-    const { title, price, available_quantity, image } = req.body;
+    const { title, price, available_quantity, image, description, free_shipping, is_full } = req.body;
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
 
     if (!ad) return res.status(404).json({ error: 'Anúncio não encontrado' });
@@ -122,6 +132,9 @@ router.put('/:id', checkAuth, async (req, res) => {
     ad.price = price;
     ad.available_quantity = available_quantity;
     if (image !== undefined) ad.image = image;
+    if (description !== undefined) ad.description = description;
+    if (free_shipping !== undefined) ad.free_shipping = free_shipping;
+    if (is_full !== undefined) ad.is_full = is_full;
     await ad.save(); 
 
     res.json(ad);

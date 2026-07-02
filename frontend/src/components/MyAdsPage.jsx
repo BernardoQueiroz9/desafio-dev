@@ -5,7 +5,7 @@ const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
   text: '#333', textSec: '#666', textTer: '#999',
   border: '#E0E0E0', bgCard: '#FFF', bgBody: '#FAFAFA',
-  red: '#FF4B4B',
+  red: '#FF4B4B', green: '#00A650',
 };
 
 export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
@@ -37,13 +37,13 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
 
   return (
     <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Meus Anúncios</h2>
           <p style={{ fontSize: '13px', color: colors.textTer, margin: 0 }}>{myAds.length} anúncio{myAds.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={onNew}
-          style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: colors.blue, color: '#FFF', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: colors.blue, color: '#FFF', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
           onMouseEnter={(e) => { e.target.style.background = colors.blueDark; }}
           onMouseLeave={(e) => { e.target.style.background = colors.blue; }}
         >
@@ -55,7 +55,18 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
       </div>
 
       {loading ? (
-        <p style={{ textAlign: 'center', color: colors.textTer, padding: '40px' }}>Carregando...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px 0' }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ display: 'flex', gap: '14px', padding: '14px', border: `1px solid ${colors.border}`, borderRadius: '6px', background: colors.bgCard, alignItems: 'center' }}>
+              <div className="skeleton" style={{ width: '72px', height: '72px', borderRadius: '4px', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton" style={{ height: '16px', width: '60%', marginBottom: '8px' }} />
+                <div className="skeleton" style={{ height: '14px', width: '40%', marginBottom: '6px' }} />
+                <div className="skeleton" style={{ height: '12px', width: '30%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : myAds.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: colors.textTer }}>
           <p style={{ fontSize: '14px', fontWeight: 600, color: colors.textSec, marginBottom: '4px' }}>Nenhum anúncio ainda</p>
@@ -64,12 +75,12 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {myAds.map(ad => (
-            <div key={ad._id} style={{
+            <div key={ad._id} className="myads-item" style={{
               display: 'flex', gap: '14px', padding: '14px',
               border: `1px solid ${colors.border}`, borderRadius: '6px',
               background: colors.bgCard, alignItems: 'center',
             }}>
-              <div style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: colors.bgBody, flexShrink: 0 }}>
+              <div className="myads-item-image" style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: colors.bgBody, flexShrink: 0 }}>
                 <img src={ad.image || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
                   onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
@@ -78,9 +89,17 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
                 <p style={{ fontSize: '16px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>
                   {ad.price != null ? Number(ad.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : ''}
                 </p>
-                <p style={{ fontSize: '12px', color: colors.textTer }}>Estoque: {ad.available_quantity}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <span style={{ fontSize: '12px', color: colors.textTer }}>Estoque: {ad.available_quantity}</span>
+                  {ad.free_shipping && (
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: colors.green }}>Frete grátis</span>
+                  )}
+                  {ad.is_full && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#8B6F00', background: '#FDF0D5', padding: '1px 5px', borderRadius: '3px' }}>Full</span>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div className="myads-item-actions" style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 <button onClick={() => onEdit(ad)}
                   style={{ padding: '8px 14px', borderRadius: '4px', border: `1px solid ${colors.blue}`, background: '#FFF', color: colors.blue, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   onMouseEnter={(e) => { e.target.style.background = colors.blueLight; }}

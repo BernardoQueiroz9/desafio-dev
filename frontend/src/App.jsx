@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import Header from './components/Header';
@@ -13,6 +13,17 @@ const unmaskPrice = (masked) => {
   return parseFloat(masked.replace(/\./g, '').replace(',', '.'));
 };
 
+function SkeletonCard() {
+  return (
+    <div className="skeleton-card">
+      <div className="skeleton-image" />
+      <div className="skeleton-line short" style={{ marginTop: '12px' }} />
+      <div className="skeleton-line" />
+      <div className="skeleton-line medium" style={{ marginBottom: '12px' }} />
+    </div>
+  );
+}
+
 function Login() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('login');
@@ -22,7 +33,6 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(() => localStorage.getItem('rememberMe') === 'true');
-
 
   useEffect(() => {
     if (localStorage.getItem('userId')) navigate('/dashboard', { replace: true });
@@ -88,7 +98,7 @@ function Login() {
       background: 'var(--ml-yellow)',
       padding: '20px',
     }}>
-      <div style={{
+      <div className="login-card" style={{
         background: '#fff',
         borderRadius: '8px',
         padding: '40px',
@@ -256,18 +266,40 @@ function Login() {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '' });
   const [formData, setFormData] = useState({
-    id: null, title: '', price: '', available_quantity: '', image: ''
+    id: null, title: '', price: '', available_quantity: '', image: '',
+    description: '', free_shipping: false, is_full: false
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
-  const [view, setView] = useState('grid'); // 'grid' | 'my-ads' | 'form'
+
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const isEdit = pathParts[1] === 'editar' && pathParts[2];
+  const editId = isEdit ? pathParts[2] : null;
+  let view = 'grid';
+  if (pathParts[1] === 'meus-anuncios') view = 'my-ads';
+  else if (pathParts[1] === 'novo-anuncio') view = 'form';
+  else if (isEdit) view = 'form';
 
   const userName = localStorage.getItem('userName') || 'Vendedor';
+
+  const loadAds = (q, f) => {
+    setLoading(true);
+    const params = {};
+    const minP = f?.minPrice || filters.minPrice;
+    const maxP = f?.maxPrice || filters.maxPrice;
+    const query = q ?? searchQuery;
+    if (minP) params.minPrice = unmaskPrice(minP);
+    if (maxP) params.maxPrice = unmaskPrice(maxP);
+    if (query) params.search = query;
+    api.get('/ads', { params }).then(res => { setAds(res.data); setLoading(false); }).catch(() => setLoading(false));
+  };
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -275,28 +307,50 @@ function Dashboard() {
       navigate('/', { replace: true });
       return;
     }
-    api.get('/ads').then(res => setAds(res.data)).catch(console.error);
-  }, [navigate]);
+    loadAds();
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'form') return;
+    if (editId) {
+      const stateAd = location.state?.ad;
+      if (stateAd && stateAd._id === editId) {
+        setFormData({
+          id: stateAd._id,
+          title: stateAd.title || '',
+          price: formatPrice(stateAd.price),
+          available_quantity: stateAd.available_quantity ?? '',
+          image: stateAd.image || '',
+          description: stateAd.description || '',
+          free_shipping: stateAd.free_shipping || false,
+          is_full: stateAd.is_full || false,
+        });
+      } else {
+        api.get(`/ads/${editId}`).then(ad => {
+          setFormData({
+            id: ad.data._id,
+            title: ad.data.title || '',
+            price: formatPrice(ad.data.price),
+            available_quantity: ad.data.available_quantity ?? '',
+            image: ad.data.image || '',
+            description: ad.data.description || '',
+            free_shipping: ad.data.free_shipping || false,
+            is_full: ad.data.is_full || false,
+          });
+        }).catch(console.error);
+      }
+    } else {
+      setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+    }
+  }, [view, editId]);
 
   const formatPrice = (v) => {
     if (v == null || v === '') return '';
     return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const fetchAds = async (f, q) => {
-    try {
-      const params = {};
-      const minP = f?.minPrice || filters.minPrice;
-      const maxP = f?.maxPrice || filters.maxPrice;
-      const query = q ?? searchQuery;
-      if (minP) params.minPrice = unmaskPrice(minP);
-      if (maxP) params.maxPrice = unmaskPrice(maxP);
-      if (query) params.search = query;
-      const res = await api.get('/ads', { params });
-      setAds(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+  const fetchAds = (f, q) => {
+    loadAds(q, f);
   };
 
   const handleSync = async () => {
@@ -354,18 +408,13 @@ function Dashboard() {
       } else {
         await api.post('/ads', payload);
       }
-      resetForm();
-      setView('my-ads');
+      navigate('/dashboard/meus-anuncios');
       fetchAds();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Erro na requisição';
       console.error('Submit error:', err);
       alert(msg);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({ id: null, title: '', price: '', available_quantity: '', image: '' });
   };
 
   const handleLogout = () => {
@@ -379,6 +428,7 @@ function Dashboard() {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
+    if (view !== 'grid') navigate('/dashboard');
     fetchAds(filters, query);
   };
 
@@ -388,19 +438,18 @@ function Dashboard() {
   };
 
   const handleEditAd = (ad) => {
-    setFormData({
-      id: ad._id,
-      title: ad.title,
-      price: formatPrice(ad.price),
-      available_quantity: ad.available_quantity ?? '',
-      image: ad.image || '',
-    });
-    setView('form');
+    navigate(`/dashboard/editar/${ad._id}`, { state: { ad } });
   };
 
   const hasDivergences = syncData && syncData.divergences.length > 0;
 
-  // ─── Main render ────────────────────────────────────────────
+  const skeletonGrid = (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}
+      className="product-grid">
+      {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header
@@ -412,7 +461,6 @@ function Dashboard() {
         syncing={syncing}
         hasDivergences={hasDivergences}
         currentView={view}
-        onViewChange={setView}
       />
 
       <div style={{
@@ -421,7 +469,6 @@ function Dashboard() {
         width: '100%',
         background: 'var(--ml-bg)',
       }}>
-        {/* Sidebar only in grid view */}
         {view === 'grid' && (
           <>
             <div className={`sidebar-desktop${sidebarOpen ? ' open' : ''}`}>
@@ -452,55 +499,63 @@ function Dashboard() {
           </>
         )}
 
-        {/* Grid view */}
         {view === 'grid' && (
-          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }} className="page-enter">
             <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-              {ads.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-secondary)', marginBottom: '8px' }}>
-                    {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anúncio publicado'}
-                  </h3>
-                  <p style={{ fontSize: '14px', maxWidth: '300px' }}>
-                    {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anúncio em "Meus Anúncios".'}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '12px', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>
-                      {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
-                      {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
-                    </span>
+              {loading ? skeletonGrid : (
+                ads.length === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-secondary)', marginBottom: '8px' }}>
+                      {searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum anúncio publicado'}
+                    </h3>
+                    <p style={{ fontSize: '14px', maxWidth: '300px' }}>
+                      {searchQuery ? 'Tente buscar por um termo diferente ou limpe a busca.' : 'Crie seu primeiro anúncio em "Meus Anúncios".'}
+                    </p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}>
-                    {ads.map(ad => (
-                      <ProductCard key={ad._id} ad={ad} />
-                    ))}
-                  </div>
-                </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '12px', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>
+                        {ads.length} {ads.length === 1 ? 'resultado' : 'resultados'}
+                        {searchQuery && <> para "<strong style={{ color: 'var(--ml-text-secondary)' }}>{searchQuery}</strong>"</>}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}
+                      className="product-grid">
+                      {ads.map(ad => (
+                        <ProductCard key={ad._id} ad={ad} />
+                      ))}
+                    </div>
+                  </>
+                )
               )}
             </div>
           </main>
         )}
 
-        {/* My Ads page */}
         {view === 'my-ads' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
-            <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <MyAdsPage onEdit={handleEditAd} onNew={() => { resetForm(); setView('form'); }} fetchAds={fetchAds} />
+            <div className="myads-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
+              <MyAdsPage onEdit={handleEditAd} onNew={() => navigate('/dashboard/novo-anuncio')} fetchAds={fetchAds} />
             </div>
           </div>
         )}
 
-        {/* Form page */}
         {view === 'form' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
-            <div style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <AdFormPage formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onCancel={resetForm} onBack={() => setView('my-ads')} />
+            <div className="form-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
+              <AdFormPage
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleSubmit}
+                onCancel={() => {
+                  setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false });
+                  navigate('/dashboard/meus-anuncios');
+                }}
+              />
             </div>
           </div>
         )}
@@ -524,7 +579,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/*" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );

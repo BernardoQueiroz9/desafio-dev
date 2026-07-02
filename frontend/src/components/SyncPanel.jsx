@@ -92,6 +92,7 @@ const styles = {
     display: 'flex',
     gap: '8px',
     marginTop: '8px',
+    flexWrap: 'wrap',
   },
   acceptBtn: {
     background: 'var(--ml-blue)',
@@ -164,7 +165,7 @@ export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll,
   if (divergences.length === 0) {
     return (
       <div style={styles.overlay} onClick={onClose}>
-        <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className="sync-modal" style={styles.modal} onClick={(e) => e.stopPropagation()}>
           <div style={styles.header}>
             <span style={styles.title}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ml-green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -192,7 +193,7 @@ export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll,
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className="sync-modal" style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <span style={styles.title}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ml-red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
