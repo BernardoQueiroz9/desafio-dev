@@ -41,8 +41,8 @@ router.get('/ml/callback', async (req, res) => {
     const { access_token, refresh_token, user_id, expires_in } = tokenData;
 
     const mlUser = await ml.getUser(access_token);
-    const name = mlUser.nickname || mlUser.first_name || 'Vendedor';
     const email = mlUser.email || '';
+    const name = mlUser.first_name || mlUser.nickname || email.split('@')[0] || 'Vendedor';
 
     let user = await User.findOne({ ml_user_id: String(user_id) });
     if (user) {
