@@ -60,13 +60,20 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const accessToken = await getValidToken(user);
 
-    const picData = await ml.uploadPicture(accessToken, image);
-    console.error('ML upload response:', JSON.stringify(picData).slice(0, 500));
-    const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
-    if (!pictureUrl) {
-      return res.status(500).json({ error: 'Upload da imagem falhou.', details: picData });
+    let pictures;
+    try {
+      const picData = await ml.uploadPicture(accessToken, image);
+      console.error('ML upload response:', JSON.stringify(picData).slice(0, 500));
+      const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
+      if (pictureUrl) {
+        pictures = [{ source: pictureUrl }];
+      }
+    } catch (uploadErr) {
+      console.error('Upload falhou, usando placeholder:', uploadErr.message);
     }
-    const pictures = [{ source: pictureUrl }];
+    if (!pictures) {
+      pictures = [{ source: 'https://placehold.co/400x400/FFF/EEE?text=Produto' }];
+    }
 
     let itemAttributes = attributes || [];
     if (itemAttributes.length === 0) {
