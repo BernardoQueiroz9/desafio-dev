@@ -19,8 +19,11 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const [preview, setPreview] = useState(formData.image || '');
   const [imgTab, setImgTab] = useState('url');
   const [dragOver, setDragOver] = useState(false);
+  const [categorySelections, setCategorySelections] = useState([]);
   const fileRef = useRef(null);
   const dropRef = useRef(null);
+
+  const hasLeafCategory = !!formData.category_id;
 
   useEffect(() => {
     setPreview(formData.image || '');
@@ -201,10 +204,18 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
         )}
 
         {fieldCard(
-          <CategoryPicker
-            value={formData.category_id}
-            onChange={(catId) => setFormData({ ...formData, category_id: catId })}
-          />,
+          <>
+            <CategoryPicker
+              value={formData.category_id}
+              onChange={(catId) => setFormData({ ...formData, category_id: catId })}
+              onSelect={(sel) => setCategorySelections(sel)}
+            />
+            {!hasLeafCategory && categorySelections.length > 0 && (
+              <p style={{ fontSize: '12px', color: '#856404', marginTop: '8px' }}>
+                Continue selecionando subcategorias até o fim da árvore
+              </p>
+            )}
+          </>,
           'Categoria'
         )}
 
@@ -247,12 +258,12 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
 
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" disabled={submitting} style={{
+          <button type="submit" disabled={!hasLeafCategory || submitting} style={{
             flex: 1, padding: '13px', borderRadius: '6px', border: 'none',
-            background: submitting ? '#B0C4DE' : colors.blue, color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: '4px',
+            background: !hasLeafCategory ? '#CCC' : (submitting ? '#B0C4DE' : colors.blue), color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: !hasLeafCategory || submitting ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: '4px',
           }}
-            onMouseEnter={(e) => { if (!submitting) e.target.style.background = colors.blueDark; }}
-            onMouseLeave={(e) => { if (!submitting) e.target.style.background = colors.blue; }}
+            onMouseEnter={(e) => { if (!submitting && hasLeafCategory) e.target.style.background = colors.blueDark; }}
+            onMouseLeave={(e) => { if (!submitting && hasLeafCategory) e.target.style.background = colors.blue; }}
           >{submitting ? (formData.id ? 'Atualizando...' : 'Publicando...') : (formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio')}</button>
 
           <button type="button" onClick={onCancel}

@@ -8,7 +8,7 @@ const colors = {
   border: '#E0E0E0', bgCard: '#FFF', bgBody: '#FAFAFA',
 };
 
-export default function CategoryPicker({ value, onChange }) {
+export default function CategoryPicker({ value, onChange, onSelect }) {
   const [levels, setLevels] = useState([]);
   const [selections, setSelections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +43,7 @@ export default function CategoryPicker({ value, onChange }) {
       }
       const newSelections = path.map(p => ({ id: p.id, name: p.name }));
       setSelections(newSelections);
+      if (onSelect) onSelect(newSelections);
 
       const newLevels = [levels[0]];
       for (let i = 0; i < path.length - 1; i++) {
@@ -59,10 +60,9 @@ export default function CategoryPicker({ value, onChange }) {
   }
 
   const handleSelect = async (catId, catName, levelIndex) => {
-    onChange(catId);
-
     const newSelections = [...selections.slice(0, levelIndex), { id: catId, name: catName }];
     setSelections(newSelections);
+    if (onSelect) onSelect(newSelections);
 
     const isLastLevel = levelIndex >= levels.length - 1;
     if (!isLastLevel) {
@@ -74,8 +74,12 @@ export default function CategoryPicker({ value, onChange }) {
       const res = await api.get(`/categories/${catId}/children`);
       if (res.data.length > 0) {
         setLevels(prev => [...prev.slice(0, levelIndex + 1), res.data]);
+      } else {
+        onChange(catId);
       }
-    } catch {}
+    } catch {
+      onChange(catId);
+    }
     setLoading(false);
   };
 
