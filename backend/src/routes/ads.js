@@ -9,6 +9,9 @@ const ML_SITE_ID = process.env.ML_SITE_ID || 'MLB';
 
 async function getValidToken(user) {
   if (user.isTokenExpired()) {
+    if (!user.ml_refresh_token) {
+      throw new Error('Token expirado e sem refresh_token. Faça login novamente.');
+    }
     const data = await ml.refreshAccessToken(user.ml_refresh_token);
     user.ml_access_token = data.access_token;
     user.ml_refresh_token = data.refresh_token;

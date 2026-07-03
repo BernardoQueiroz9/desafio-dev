@@ -448,15 +448,19 @@ function Dashboard() {
         {view === 'form' && (
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="form-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
-              <AdFormPage key={editId || 'new'}
-                formData={formData}
-                setFormData={setFormData}
-                onSubmit={handleSubmit}
-                onCancel={() => {
-                  setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
-                  navigate('/dashboard/meus-anuncios');
-                }}
-              />
+              {apiError ? (
+                <ErrorScreen message={apiError} onRetry={() => setApiError(null)} />
+              ) : (
+                <AdFormPage key={editId || 'new'}
+                  formData={formData}
+                  setFormData={setFormData}
+                  onSubmit={handleSubmit}
+                  onCancel={() => {
+                    setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
+                    navigate('/dashboard/meus-anuncios');
+                  }}
+                />
+              )}
             </div>
           </div>
         )}
