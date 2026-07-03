@@ -120,6 +120,16 @@ export default function ProductCard({ ad }) {
       }}
     >
       <div style={styles.imageWrapper}>
+        {ad.ml_id && (
+          <div style={{
+            position: 'absolute', top: '8px', left: '8px', zIndex: 2,
+            background: 'var(--ml-yellow)', color: '#333', fontSize: '10px',
+            fontWeight: 700, padding: '2px 6px', borderRadius: '3px',
+            textTransform: 'uppercase', letterSpacing: '0.3px',
+          }}>
+            ML
+          </div>
+        )}
         <img
           key={ad._id}
           src={imageSrc}

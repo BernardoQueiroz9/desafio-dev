@@ -213,6 +213,15 @@ export default function ProductDetailPage({ userName: propUserName }) {
                 <span>{ad.category_name}</span>
               </div>
             )}
+            {ad.ml_id && (
+              <div style={s.infoRow}>
+                <span style={s.infoLabel}>Mercado Livre</span>
+                <a href={`https://www.mercadolivre.com.br/item/${ad.ml_id}`} target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'var(--ml-blue)', fontSize: '14px', textDecoration: 'none', fontWeight: 500 }}>
+                  Ver anúncio ↗
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
