@@ -10,17 +10,7 @@ const LISTING_TYPE = 'gold_special';
 
 const DEFAULT_ATTRIBUTES = {
   BRAND: 'Genérico',
-  COLLECTION: 'Standard',
-  FORMAT: 'Padrão',
-  VIDEO_GAME_PLATFORM: 'PC',
   VIDEO_GAME_TITLE: 'Jogo Padrão',
-  REGION: 'Nacional',
-  US_GAME_CLASSIFICATION: 'E (Everyone)',
-  LINE: 'Básica',
-  DEPARTMENT: 'Geral',
-  COLOR: 'Preto',
-  SIZE: 'M',
-  MATERIAL: 'Padrão',
   MODEL: 'Básico',
 };
 
@@ -80,24 +70,14 @@ router.post('/', authMiddleware, async (req, res) => {
       try {
         const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
         for (const attr of reqAttrs) {
-          const value = attr._picked_value || DEFAULT_ATTRIBUTES[attr.id] || '';
-          if (value) {
-            itemAttributes.push({ id: attr.id, value_name: value });
-          }
-        }
-        const addedIds = new Set(itemAttributes.map(a => a.id));
-        for (const [id, value] of Object.entries(DEFAULT_ATTRIBUTES)) {
-          if (!addedIds.has(id) && value) {
-            itemAttributes.push({ id, value_name: value });
+          if (attr.value_type === 'list' && attr._picked_value_id) {
+            itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
+          } else if (attr._picked_value) {
+            itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
           }
         }
       } catch (attrErr) {
-        console.error('Falha ao buscar atributos da categoria, usando defaults:', attrErr.message);
-        for (const [id, value] of Object.entries(DEFAULT_ATTRIBUTES)) {
-          if (value) {
-            itemAttributes.push({ id, value_name: value });
-          }
-        }
+        console.error('Falha ao buscar atributos da categoria:', attrErr.message);
       }
     }
 

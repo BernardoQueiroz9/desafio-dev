@@ -172,22 +172,28 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
     });
     const all = Array.isArray(res.data) ? res.data : [];
     return all
-      .filter(attr => {
-        if (!attr.value_type) return false;
-        const hasRequiredTag = attr.tags?.some(t => t.includes('required'));
-        const hasRelevance = attr.relevance > 0;
-        const hasPickableValue = attr.allowed_values?.length > 0 || attr.values?.length > 0 || attr.default_value?.value;
-        return hasRequiredTag || hasRelevance || hasPickableValue;
-      })
+      .filter(attr => attr.value_type)
       .map(attr => {
-        let value = attr.default_value?.value || '';
-        if (!value && attr.values?.length > 0) {
-          value = attr.values[0].id || attr.values[0].name || '';
+        let value_id = null;
+        let value_name = '';
+        if (attr.value_type === 'list') {
+          const first = attr.allowed_values?.[0] || attr.values?.[0];
+          if (first) {
+            value_id = first.id;
+            value_name = first.name || '';
+          }
+        } else {
+          value_name = attr.default_value?.value || attr.values?.[0]?.name || attr.values?.[0]?.id || '';
         }
-        if (!value && attr.allowed_values?.length > 0) {
-          value = attr.allowed_values[0].id || attr.allowed_values[0].name || '';
-        }
-        return { ...attr, _picked_value: value };
+        return {
+          id: attr.id,
+          name: attr.name,
+          value_type: attr.value_type,
+          tags: attr.tags,
+          relevance: attr.relevance,
+          _picked_value_id: value_id,
+          _picked_value: value_name,
+        };
       });
   });
 }
