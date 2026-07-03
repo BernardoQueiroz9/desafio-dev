@@ -49,7 +49,7 @@ router.post('/', authMiddleware, async (req, res) => {
       }
     }
 
-    const mlItem = await ml.createItem(accessToken, {
+    const payload = {
       site_id: ML_SITE_ID,
       title,
       category_id,
@@ -58,13 +58,17 @@ router.post('/', authMiddleware, async (req, res) => {
       available_quantity: Number(available_quantity),
       buying_mode: 'buy_it_now',
       listing_type_id: 'gold_special',
-      condition: 'new',
       pictures,
-      shipping: {
+    };
+
+    if (free_shipping || is_full) {
+      payload.shipping = {
         free_shipping: !!free_shipping,
         mode: is_full ? 'me2' : 'not_specified',
-      },
-    });
+      };
+    }
+
+    const mlItem = await ml.createItem(accessToken, payload);
 
     if (description) {
       await ml.setDescription(accessToken, mlItem.id, description);
@@ -80,11 +84,62 @@ router.post('/', authMiddleware, async (req, res) => {
 
     res.status(201).json(newAd);
   } catch (error) {
-    const detail = error.response?.data || error.message;
-    console.error('Erro ao criar anuncio:', JSON.stringify(detail));
+    const errData = error.response?.data || {};
+    console.error('Erro ao criar anuncio:', JSON.stringify(errData, null, 2));
+    const cause = errData.cause || [];
+    if (cause.length) {
+      cause.forEach((c, i) => console.error(`  cause[${i}]:`, JSON.stringify(c)));
+    }
     res.status(500).json({
-      error: error.response?.data?.message || error.message || 'Erro ao criar anuncio',
-      details: error.response?.data || null,
+      error: errData.message || error.message || 'Erro ao criar anuncio',
+      details: errData,
+    });
+  }
+});
+
+router.post('/test-create', authMiddleware, async (req, res) => {
+  try {
+    const { title, price, available_quantity, category_id } = req.body;
+    if (!title || !price || !available_quantity || !category_id) {
+      return res.status(400).json({ error: 'title, price, available_quantity e category_id sao obrigatorios' });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
+
+    const accessToken = await getValidToken(user);
+
+    const payload = {
+      site_id: ML_SITE_ID,
+      title,
+      category_id,
+      price: Number(price),
+      currency_id: 'BRL',
+      available_quantity: Number(available_quantity),
+      buying_mode: 'buy_it_now',
+      listing_type_id: 'gold_special',
+    };
+
+    console.log('Test-create payload:', JSON.stringify(payload, null, 2));
+    const mlItem = await ml.createItem(accessToken, payload);
+
+    const newAd = new Ad({
+      ml_id: mlItem.id,
+      title, price, available_quantity, category_id,
+      user: req.userId,
+    });
+    await newAd.save();
+
+    res.status(201).json({ message: 'Anuncio criado com sucesso!', ad: newAd, mlItem });
+  } catch (error) {
+    const errData = error.response?.data || {};
+    console.error('Erro no test-create:', JSON.stringify(errData, null, 2));
+    const cause = errData.cause || [];
+    if (cause.length) {
+      cause.forEach((c, i) => console.error(`  cause[${i}]:`, JSON.stringify(c)));
+    }
+    res.status(500).json({
+      error: errData.message || error.message || 'Erro ao criar anuncio de teste',
+      details: errData,
     });
   }
 });
