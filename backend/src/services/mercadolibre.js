@@ -1,5 +1,8 @@
 const axios = require('axios');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 const API_BASE = 'https://api.mercadolibre.com';
 const AUTH_BASE = 'https://auth.mercadolivre.com.br';
@@ -97,20 +100,28 @@ async function getCategoryChildren(categoryId, accessToken) {
 }
 
 async function uploadPicture(accessToken, imageDataUrl) {
-  return callWithRetry(async () => {
-    const matches = imageDataUrl.match(/^data:(.+?);base64,(.+)$/);
-    if (!matches) throw new Error('Formato de imagem invalido');
-    const buffer = Buffer.from(matches[2], 'base64');
-    const ext = matches[1].split('/')[1] || 'jpg';
+  const matches = imageDataUrl.match(/^data:(.+?);base64,(.+)$/);
+  if (!matches) throw new Error('Formato de imagem invalido');
+  const buffer = Buffer.from(matches[2], 'base64');
+  const ext = matches[1].split('/')[1] || 'jpg';
+  const tmpFile = path.join(os.tmpdir(), `meli_${Date.now()}.${ext}`);
+  fs.writeFileSync(tmpFile, buffer);
 
-    const form = new FormData();
-    form.append('file', buffer, { filename: `image.${ext}`, contentType: matches[1] });
+  try {
+    return await callWithRetry(async () => {
+      const form = new FormData();
+      form.append('file', fs.createReadStream(tmpFile));
 
-    const res = await axios.post(`${API_BASE}/pictures`, form, {
-      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, ...form.getHeaders() },
+      const res = await axios.post(`${API_BASE}/pictures`, form, {
+        headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, ...form.getHeaders() },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      });
+      return res.data;
     });
-    return res.data;
-  });
+  } finally {
+    try { fs.unlinkSync(tmpFile); } catch {}
+  }
 }
 
 async function createItem(accessToken, data) {
@@ -154,6 +165,18 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
   });
 }
 
+async function checkAvailableListingType(accessToken, userId, categoryId, listingTypeId) {
+  return callWithRetry(async () => {
+    const res = await axios.get(
+      `${API_BASE}/users/${userId}/available_listing_types`,
+      { params: { category: categoryId }, headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` } }
+    );
+    const types = Array.isArray(res.data) ? res.data : (res.data.available_listing_types || []);
+    const match = types.find(t => t.id === listingTypeId);
+    return match || null;
+  });
+}
+
 async function setDescription(accessToken, itemId, plainText) {
   return callWithRetry(async () => {
     const res = await axios.post(
@@ -178,4 +201,5 @@ module.exports = {
   getItem,
   setDescription,
   getCategoryRequiredAttributes,
+  checkAvailableListingType,
 };

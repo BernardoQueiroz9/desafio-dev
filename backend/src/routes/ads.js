@@ -6,6 +6,23 @@ const { authMiddleware } = require('./auth');
 const router = express.Router();
 
 const ML_SITE_ID = process.env.ML_SITE_ID || 'MLB';
+const LISTING_TYPE = 'gold_special';
+
+const DEFAULT_ATTRIBUTES = {
+  BRAND: 'Genérico',
+  COLLECTION: 'Standard',
+  FORMAT: 'Padrão',
+  VIDEO_GAME_PLATFORM: 'PC',
+  VIDEO_GAME_TITLE: 'Jogo Padrão',
+  REGION: 'Nacional',
+  US_GAME_CLASSIFICATION: 'E (Everyone)',
+  LINE: 'Básica',
+  DEPARTMENT: 'Geral',
+  COLOR: 'Preto',
+  SIZE: 'M',
+  MATERIAL: 'Padrão',
+  MODEL: 'Básico',
+};
 
 async function getValidToken(user) {
   if (user.isTokenExpired()) {
@@ -23,7 +40,7 @@ async function getValidToken(user) {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, free_shipping, is_full, category_id, attributes } = req.body;
+    const { title, price, available_quantity, image, description, category_id, attributes } = req.body;
 
     if (available_quantity < 1) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
@@ -32,7 +49,10 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Categoria é obrigatoria' });
     }
     if (!image) {
-      return res.status(400).json({ error: 'Imagem é obrigatória para criar anúncio' });
+      return res.status(400).json({ error: 'Selecione uma imagem para o anúncio' });
+    }
+    if (!title || title.length < 10) {
+      return res.status(400).json({ error: 'Título deve ter pelo menos 10 caracteres' });
     }
 
     const user = await User.findById(req.userId);
@@ -41,26 +61,41 @@ router.post('/', authMiddleware, async (req, res) => {
     const accessToken = await getValidToken(user);
 
     const picData = await ml.uploadPicture(accessToken, image);
-    const pictures = picData.variants
-      ? [{ source: picData.variants[0]?.url || image }]
-      : [{ source: image }];
+    const pictureUrl = picData.variants?.[0]?.url;
+    if (!pictureUrl) {
+      return res.status(500).json({ error: 'Upload da imagem falhou. Tente outra imagem.' });
+    }
+    const pictures = [{ source: pictureUrl }];
 
     let itemAttributes = attributes || [];
     if (itemAttributes.length === 0) {
       try {
         const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
-        const fillable = reqAttrs.filter(a => a.default_value?.value);
-        for (const attr of fillable) {
-          itemAttributes.push({ id: attr.id, value_name: attr.default_value.value });
-        }
-        if (reqAttrs.length > fillable.length) {
-          const missing = reqAttrs.filter(a => !a.default_value?.value);
-          const attrNames = missing.map(a => a.name || a.id).join(', ');
-          return res.status(400).json({
-            error: `Esta categoria exige atributos que não podem ser preenchidos automaticamente (${attrNames}). Escolha categorias como "Roupas", "Eletrônicos", "Brinquedos" ou "Ferramentas".`,
-          });
+        for (const attr of reqAttrs) {
+          const id = attr.id;
+          const value = attr.default_value?.value || DEFAULT_ATTRIBUTES[id] || '';
+          if (value) {
+            itemAttributes.push({ id, value_name: value });
+          }
         }
       } catch {}
+    }
+
+    try {
+      const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id || user.ml_id, category_id, LISTING_TYPE);
+      if (!availableType) {
+        return res.status(400).json({
+          error: `Esta categoria não aceita anúncios do tipo "${LISTING_TYPE}" para sua conta. Escolha "Roupas", "Brinquedos" ou "Ferramentas".`,
+        });
+      }
+      const hasValidShipping = availableType.shipping_modes?.some(m => ['not_specified', 'custom'].includes(m));
+      if (!hasValidShipping) {
+        return res.status(400).json({
+          error: 'Esta categoria exige frete Mercado Livre (não disponível pra sua conta). Escolha "Roupas", "Brinquedos" ou "Ferramentas".',
+        });
+      }
+    } catch (checkErr) {
+      console.error('Falha ao verificar listing type (continuando):', checkErr.message);
     }
 
     const payload = {
@@ -71,7 +106,7 @@ router.post('/', authMiddleware, async (req, res) => {
       currency_id: 'BRL',
       available_quantity: Number(available_quantity),
       buying_mode: 'buy_it_now',
-      listing_type_id: 'gold_special',
+      listing_type_id: LISTING_TYPE,
       condition: 'new',
       pictures,
     };
@@ -83,13 +118,12 @@ router.post('/', authMiddleware, async (req, res) => {
     const mlItem = await ml.createItem(accessToken, payload);
 
     if (description) {
-      await ml.setDescription(accessToken, mlItem.id, description);
+      try { await ml.setDescription(accessToken, mlItem.id, description); } catch {}
     }
 
     const newAd = new Ad({
       ml_id: mlItem.id,
       title, price: Number(price), available_quantity: Number(available_quantity), image, description,
-      free_shipping: !!free_shipping, is_full: !!is_full,
       category_id,
       user: req.userId,
     });
@@ -104,8 +138,12 @@ router.post('/', authMiddleware, async (req, res) => {
       cause.forEach((c, i) => console.error(`  cause[${i}]:`, c));
     }
     let userMsg = errData.message || error.message || 'Erro ao criar anuncio';
-    if (cause.some(c => c.includes('mandatory free shipping') || c.includes('mode me1'))) {
-      userMsg = 'Sua conta não tem Mercado Envios (frete) habilitado. Escolha categorias que não exijam frete gratuito obrigatório, como "Roupas", "Brinquedos" ou "Ferramentas".';
+    if (cause.some(c => c.includes('mode me1') || c.includes('mandatory free shipping'))) {
+      userMsg = 'Sua conta ainda não pode usar frete do Mercado Livre. Escolha uma categoria que não exija frete, como "Roupas", "Brinquedos", "Ferramentas" ou "Papelaria".';
+    } else if (cause.some(c => c.includes('Maximum length'))) {
+      userMsg = 'A imagem selecionada é muito grande ou inválida. Tente outra imagem.';
+    } else if (cause.some(c => c.includes('attributes') && c.includes('required'))) {
+      userMsg = `Esta categoria exige atributos específicos. Tente "Roupas", "Brinquedos" ou "Ferramentas" que são mais simples.`;
     }
     res.status(500).json({
       error: userMsg,
