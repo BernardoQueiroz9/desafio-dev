@@ -81,9 +81,27 @@ router.get('/ml/callback', async (req, res) => {
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('name email ml_user_id');
+    const user = await User.findById(req.userId).select('name email ml_user_id ml_access_token ml_token_expires_at');
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-    res.json(user);
+
+    let mlProfile = null;
+    try {
+      mlProfile = await ml.getUser(user.ml_access_token);
+    } catch {}
+
+    const isSeller = mlProfile?.status?.seller_status === 'active' || mlProfile?.seller_experience;
+    const isBuyer = mlProfile?.status?.buyer_status === 'active';
+
+    res.json({
+      name: user.name,
+      email: user.email,
+      ml_user_id: user.ml_user_id,
+      ml_seller: !!isSeller,
+      ml_seller_status: mlProfile?.status?.seller_status || null,
+      ml_buyer_status: mlProfile?.status?.buyer_status || null,
+      ml_nickname: mlProfile?.nickname || null,
+      ml_tags: mlProfile?.tags || [],
+    });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar usuário' });
   }
