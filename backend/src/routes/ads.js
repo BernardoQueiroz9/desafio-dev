@@ -122,7 +122,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
     const accessToken = await getValidToken(user);
 
-    const results = await Promise.all(ads.map(async (ad) => {
+    const syncResults = await Promise.all(ads.map(async (ad) => {
       if (!ad.ml_id) return null;
       try {
         const mlItem = await ml.getItem(accessToken, ad.ml_id);
@@ -137,13 +137,16 @@ router.post('/sync', authMiddleware, async (req, res) => {
         return Object.keys(diff).length > 0
           ? { ml_id: ad.ml_id, _id: ad._id, local: ad.toObject(), marketplace: mlItem, diff }
           : null;
-      } catch {
-        return null;
+      } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message || 'Erro ao consultar ML';
+        console.error(`Erro no sync do anúncio ${ad.ml_id}:`, errorMsg);
+        return { ml_id: ad.ml_id, _id: ad._id, error: errorMsg };
       }
     }));
 
-    const divergences = results.filter(Boolean);
-    res.json({ divergences, checked: ads.length });
+    const divergences = syncResults.filter(r => r && !r.error);
+    const failed = syncResults.filter(r => r && r.error).map(r => ({ ml_id: r.ml_id, _id: r._id, error: r.error }));
+    res.json({ divergences, failed, checked: ads.length });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao sincronizar' });
   }

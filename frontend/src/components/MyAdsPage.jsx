@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import ErrorScreen from './ErrorScreen';
 
 const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect fill="#F5F5F5" width="200" height="200"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#CCCCCC" font-family="sans-serif" font-size="14">Sem imagem</text></svg>'
@@ -15,13 +16,17 @@ const colors = {
 export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
   const [myAds, setMyAds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchMyAds = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/ads', { params: { mine: true } });
       setMyAds(res.data);
-    } catch { /* ignore */ } finally {
+    } catch {
+      setError('Não foi possível carregar seus anúncios. Verifique sua conexão.');
+    } finally {
       setLoading(false);
     }
   };
@@ -35,7 +40,7 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
       fetchMyAds();
       if (fetchAds) fetchAds();
     } catch {
-      alert('Erro ao excluir');
+      setError('Erro ao excluir o anúncio. Tente novamente.');
     }
   };
 
@@ -58,7 +63,9 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
         </button>
       </div>
 
-      {loading ? (
+      {error && !loading ? (
+        <ErrorScreen message={error} onRetry={fetchMyAds} />
+      ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px 0' }}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', padding: '14px', border: `1px solid ${colors.border}`, borderRadius: '6px', background: colors.bgCard, alignItems: 'center' }}>

@@ -3,6 +3,24 @@ const axios = require('axios');
 const API_BASE = 'https://api.mercadolibre.com';
 const AUTH_BASE = 'https://auth.mercadolivre.com.br';
 
+async function callWithRetry(fn, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isNetworkError = !err.response && err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNABORTED';
+      const isServerError = err.response && err.response.status >= 500;
+      const isRateLimit = err.response && err.response.status === 429;
+      if ((isNetworkError || isServerError || isRateLimit) && attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 function getAuthUrl(redirectUri, state) {
   const params = new URLSearchParams({
     response_type: 'code',
@@ -22,10 +40,12 @@ async function exchangeCode(code, redirectUri) {
   params.append('code', code);
   params.append('redirect_uri', redirectUri);
 
-  const res = await axios.post(`${API_BASE}/oauth/token`, params.toString(), {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  return callWithRetry(async () => {
+    const res = await axios.post(`${API_BASE}/oauth/token`, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function refreshAccessToken(refreshToken) {
@@ -35,66 +55,84 @@ async function refreshAccessToken(refreshToken) {
   params.append('client_secret', process.env.ML_CLIENT_SECRET);
   params.append('refresh_token', refreshToken);
 
-  const res = await axios.post(`${API_BASE}/oauth/token`, params.toString(), {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  return callWithRetry(async () => {
+    const res = await axios.post(`${API_BASE}/oauth/token`, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function getUser(accessToken) {
-  const res = await axios.get(`${API_BASE}/users/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/users/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function getCategories(siteId) {
-  const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`);
-  return res.data;
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`);
+    return res.data;
+  });
 }
 
 async function getCategoryChildren(categoryId) {
-  const res = await axios.get(`${API_BASE}/categories/${categoryId}`);
-  return res.data.children_categories || [];
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}`);
+    return res.data.children_categories || [];
+  });
 }
 
 async function uploadPicture(accessToken, imageBase64) {
-  const res = await axios.post(
-    `${API_BASE}/pictures`,
-    { source: imageBase64 },
-    { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
-  );
-  return res.data;
+  return callWithRetry(async () => {
+    const res = await axios.post(
+      `${API_BASE}/pictures`,
+      { source: imageBase64 },
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    );
+    return res.data;
+  });
 }
 
 async function createItem(accessToken, data) {
-  const res = await axios.post(`${API_BASE}/items`, data, {
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+  return callWithRetry(async () => {
+    const res = await axios.post(`${API_BASE}/items`, data, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function updateItem(accessToken, itemId, data) {
-  const res = await axios.put(`${API_BASE}/items/${itemId}`, data, {
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+  return callWithRetry(async () => {
+    const res = await axios.put(`${API_BASE}/items/${itemId}`, data, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function getItem(accessToken, itemId) {
-  const res = await axios.get(`${API_BASE}/items/${itemId}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/items/${itemId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 async function setDescription(accessToken, itemId, plainText) {
-  const res = await axios.post(
-    `${API_BASE}/items/${itemId}/description`,
-    { plain_text: plainText },
-    { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
-  );
-  return res.data;
+  return callWithRetry(async () => {
+    const res = await axios.post(
+      `${API_BASE}/items/${itemId}/description`,
+      { plain_text: plainText },
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    );
+    return res.data;
+  });
 }
 
 module.exports = {

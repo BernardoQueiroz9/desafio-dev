@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import ErrorScreen from './ErrorScreen';
 
 const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
@@ -74,9 +75,7 @@ export default function CategoryPicker({ value, onChange }) {
   }
 
   if (error) {
-    return (
-      <div style={{ padding: '12px', color: 'var(--ml-red)', fontSize: '13px' }}>{error}</div>
-    );
+    return <ErrorScreen message={error} onRetry={() => window.location.reload()} />;
   }
 
   const selectedPath = selections.map(s => s.name).join(' > ');

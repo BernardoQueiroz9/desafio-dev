@@ -161,8 +161,11 @@ function formatVal(val) {
   return String(val);
 }
 
-export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll, onClose }) {
-  if (divergences.length === 0) {
+export default function SyncPanel({ divergences, failed, checked, onAccept, onAcceptAll, onClose }) {
+  const hasDivergences = divergences.length > 0;
+  const hasFailed = failed && failed.length > 0;
+
+  if (!hasDivergences && !hasFailed) {
     return (
       <div style={styles.overlay} onClick={onClose}>
         <div className="sync-modal" style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -200,7 +203,7 @@ export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll,
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            {divergences.length} divergência{divergences.length > 1 ? 's' : ''} encontrada{divergences.length > 1 ? 's' : ''}
+            {hasDivergences ? `${divergences.length} divergência${divergences.length > 1 ? 's' : ''} encontrada${divergences.length > 1 ? 's' : ''}` : 'Verificação concluída'}
           </span>
           <button style={styles.closeBtn} onClick={onClose} aria-label="Fechar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -210,6 +213,11 @@ export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll,
         </div>
 
         <div style={styles.body}>
+          {hasDivergences && (
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ml-text-secondary)', padding: '4px 0' }}>
+              {divergences.length} anúncio{divergences.length > 1 ? 's' : ''} com divergência{divergences.length > 1 ? 's' : ''}
+            </div>
+          )}
           {divergences.map((item) => (
             <div key={item.ml_id} style={styles.itemCard}>
               <div style={styles.itemTitle}>{item.local.title}</div>
@@ -241,6 +249,24 @@ export default function SyncPanel({ divergences, checked, onAccept, onAcceptAll,
               </div>
             </div>
           ))}
+
+          {hasFailed && (
+            <>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ml-red)', padding: '8px 0 4px', borderTop: `1px solid var(--ml-border)`, marginTop: '8px', paddingTop: '16px' }}>
+                {failed.length} anúncio{failed.length > 1 ? 's' : ''} não verificado{failed.length > 1 ? 's' : ''} (erro de comunicação)
+              </div>
+              {failed.map((item) => (
+                <div key={item.ml_id} style={{ ...styles.itemCard, borderLeft: '3px solid var(--ml-red)' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginBottom: '4px' }}>
+                    ML ID: {item.ml_id}
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--ml-red)' }}>
+                    {item.error}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
 
         <div style={styles.footer}>

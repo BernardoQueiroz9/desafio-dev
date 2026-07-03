@@ -8,6 +8,8 @@ import SyncPanel from './components/SyncPanel';
 import AdFormPage from './components/AdFormPage';
 import MyAdsPage from './components/MyAdsPage';
 import ProductDetailPage from './components/ProductDetailPage';
+import ErrorBoundary from './components/ErrorBoundary';
+import ErrorScreen from './components/ErrorScreen';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -138,6 +140,7 @@ function Dashboard() {
   const location = useLocation();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '' });
   const [formData, setFormData] = useState({
@@ -166,6 +169,7 @@ function Dashboard() {
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
+    setApiError(null);
     const params = {};
     const minP = f?.minPrice || filters.minPrice;
     const maxP = f?.maxPrice || filters.maxPrice;
@@ -173,7 +177,14 @@ function Dashboard() {
     if (minP) params.minPrice = unmaskPrice(minP);
     if (maxP) params.maxPrice = unmaskPrice(maxP);
     if (query) params.search = query;
-    api.get('/ads', { params, signal: controller.signal }).then(res => { setAds(res.data); setLoading(false); }).catch(() => setLoading(false));
+    api.get('/ads', { params, signal: controller.signal })
+      .then(res => { setAds(res.data); setLoading(false); })
+      .catch(err => {
+        if (err.name !== 'CanceledError') {
+          setApiError('Não foi possível carregar os anúncios. Verifique sua conexão.');
+        }
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -236,7 +247,7 @@ function Dashboard() {
       const res = await api.post('/ads/sync');
       setSyncData(res.data);
     } catch {
-      alert('Erro ao sincronizar');
+      setApiError('Erro ao sincronizar com o Mercado Livre. Verifique sua conexão.');
     } finally {
       setSyncing(false);
     }
@@ -288,9 +299,9 @@ function Dashboard() {
       navigate('/dashboard/meus-anuncios');
       fetchAds();
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Erro na requisicao';
+      const msg = err.response?.data?.error || err.message || 'Erro na requisição';
       console.error('Submit error:', err);
-      alert(msg);
+      setApiError(msg);
     }
   };
 
@@ -387,7 +398,9 @@ function Dashboard() {
         {view === 'grid' && (
           <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }} className="page-enter">
             <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-              {loading ? skeletonGrid : (
+              {apiError && !loading ? (
+                <ErrorScreen message={apiError} onRetry={() => loadAds()} />
+              ) : loading ? skeletonGrid : (
                 ads.length === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', color: 'var(--ml-text-tertiary)' }}>
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px', opacity: 0.4 }}>
@@ -456,6 +469,7 @@ function Dashboard() {
       {syncData && (
         <SyncPanel
           divergences={syncData.divergences}
+          failed={syncData.failed}
           checked={syncData.checked}
           onAccept={handleSyncAccept}
           onAcceptAll={handleSyncAcceptAll}
@@ -468,11 +482,13 @@ function Dashboard() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard/*" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard/*" element={<Dashboard />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
