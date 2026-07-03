@@ -41,8 +41,8 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!image) {
       return res.status(400).json({ error: 'Selecione uma imagem para o anúncio' });
     }
-    if (!title || title.length < 10) {
-      return res.status(400).json({ error: 'Título deve ter pelo menos 10 caracteres' });
+    if (!title) {
+      return res.status(400).json({ error: 'Titulo é obrigatorio' });
     }
 
     const user = await User.findById(req.userId);
