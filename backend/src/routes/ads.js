@@ -227,6 +227,16 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const ad = await Ad.findById(req.params.id).populate('user', 'name ml_nickname');
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
+    if (ad.category_id && !ad.category_name) {
+      try {
+        const user = await User.findById(req.userId);
+        if (user) {
+          const token = await getValidToken(user);
+          const catData = await ml.getCategory(token, ad.category_id);
+          ad.category_name = catData.name || '';
+        }
+      } catch {}
+    }
     res.json(ad);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar anuncio' });
