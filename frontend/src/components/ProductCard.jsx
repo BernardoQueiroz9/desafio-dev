@@ -103,7 +103,8 @@ const styles = {
 
 export default function ProductCard({ ad }) {
   const navigate = useNavigate();
-  const imageSrc = ad.image || PLACEHOLDER;
+  const imageSrc = ad.images?.[0] || ad.image || PLACEHOLDER;
+  const seller = ad.user?.name || ad.user?.ml_nickname || localStorage.getItem('userName') || '';
 
   const priceDisplay = formatPrice(ad.price);
 
@@ -136,9 +137,9 @@ export default function ProductCard({ ad }) {
           {priceDisplay}
         </div>
         <h3 style={styles.title}>{ad.title}</h3>
-        {ad.user?.name && (
+        {seller && (
           <span style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginTop: '2px' }}>
-            {ad.user.name}
+            {seller}
           </span>
         )}
         <div style={styles.badgesRow}>

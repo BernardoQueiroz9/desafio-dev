@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  ml_nickname: { type: String, default: '' },
   email: { type: String, default: '' },
   ml_user_id: { type: String, required: true, unique: true },
   ml_access_token: { type: String, required: true },

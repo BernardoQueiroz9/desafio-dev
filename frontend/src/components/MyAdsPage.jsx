@@ -92,7 +92,7 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
               background: colors.bgCard, alignItems: 'center',
             }}>
               <div className="myads-item-image" style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: colors.bgBody, flexShrink: 0 }}>
-                <img key={ad._id} src={ad.image || PLACEHOLDER} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
+                <img key={ad._id} src={ad.images?.[0] || ad.image || PLACEHOLDER} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
                   onError={(e) => { e.target.src = PLACEHOLDER; }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

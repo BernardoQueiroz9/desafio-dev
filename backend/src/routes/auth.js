@@ -42,7 +42,8 @@ router.get('/ml/callback', async (req, res) => {
 
     const mlUser = await ml.getUser(access_token);
     const email = mlUser.email || '';
-    const name = mlUser.first_name || mlUser.nickname || email.split('@')[0] || 'Vendedor';
+    const name = [mlUser.first_name, mlUser.last_name].filter(Boolean).join(' ') || mlUser.nickname || email.split('@')[0] || 'Vendedor';
+    const mlNickname = mlUser.nickname || '';
 
     let user = await User.findOne({ ml_user_id: String(user_id) });
     if (user) {
@@ -50,10 +51,12 @@ router.get('/ml/callback', async (req, res) => {
       if (refresh_token) user.ml_refresh_token = refresh_token;
       user.ml_token_expires_at = new Date(Date.now() + expires_in * 1000);
       user.name = name;
+      user.ml_nickname = mlNickname;
       if (email) user.email = email;
     } else {
       user = await User.create({
         name,
+        ml_nickname: mlNickname,
         email,
         ml_user_id: String(user_id),
         ml_access_token: access_token,

@@ -6,6 +6,10 @@ const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect fill="#F5F5F5" width="400" height="400"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#CCCCCC" font-family="sans-serif" font-size="20">Sem imagem</text></svg>'
 );
 
+const THUMB = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect fill="#F5F5F5" width="80" height="80"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#CCC" font-family="sans-serif" font-size="10">?</text></svg>'
+);
+
 const formatPrice = (num) => {
   if (num === null || num === undefined) return '';
   return Number(num).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -58,7 +62,7 @@ const s = {
   errorWrap: { textAlign: 'center', padding: '80px 20px', color: 'var(--ml-text-tertiary)' },
 };
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ userName: propUserName }) {
   const navigate = useNavigate();
   const location = useLocation();
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -66,6 +70,10 @@ export default function ProductDetailPage() {
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [categoryName, setCategoryName] = useState(null);
+
+  const sellerName = propUserName || localStorage.getItem('userName') || 'Vendedor';
 
   useEffect(() => {
     if (!id) {
@@ -76,6 +84,11 @@ export default function ProductDetailPage() {
     api.get(`/ads/${id}`).then(res => {
       setAd(res.data);
       setLoading(false);
+      if (res.data.category_id) {
+        api.get(`/categories/${res.data.category_id}`).then(catRes => {
+          setCategoryName(catRes.data.name);
+        }).catch(() => {});
+      }
     }).catch(() => {
       setError('Anúncio não encontrado');
       setLoading(false);
@@ -120,7 +133,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const imageSrc = ad.image || PLACEHOLDER;
+  const allImages = ad.images?.length ? ad.images : (ad.image ? [ad.image] : []);
+  const currentImage = allImages[selectedImage] || PLACEHOLDER;
 
   return (
     <div style={{ flex: 1, background: 'var(--ml-bg)' }}>
@@ -135,9 +149,23 @@ export default function ProductDetailPage() {
         <div className="pd-content" style={s.content}>
           <div className="pd-image-col" style={s.imageCol}>
             <div style={s.imageBox}>
-              <img key={ad._id} src={imageSrc} alt={ad.title} style={s.image}
+              <img key={selectedImage} src={currentImage} alt={ad.title} style={s.image}
                 onError={(e) => { e.target.src = PLACEHOLDER; }} />
             </div>
+            {allImages.length > 1 && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {allImages.map((src, i) => (
+                  <div key={i} onClick={() => setSelectedImage(i)} style={{
+                    width: '56px', height: '56px', borderRadius: '4px', overflow: 'hidden',
+                    cursor: 'pointer', border: `2px solid ${i === selectedImage ? 'var(--ml-blue)' : 'var(--ml-border)'}`,
+                    opacity: i === selectedImage ? 1 : 0.6, transition: 'all 0.15s',
+                  }}>
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.src = THUMB; }} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="pd-info-col" style={s.infoCol}>
@@ -173,7 +201,7 @@ export default function ProductDetailPage() {
 
             <div style={s.infoRow}>
               <span style={s.infoLabel}>Vendedor</span>
-              <span>{ad.user?.name || '—'}</span>
+              <span>{sellerName}</span>
             </div>
             <div style={s.infoRow}>
               <span style={s.infoLabel}>Estoque</span>
@@ -183,6 +211,12 @@ export default function ProductDetailPage() {
               <div style={s.infoRow}>
                 <span style={s.infoLabel}>Condição</span>
                 <span>{ad.condition}</span>
+              </div>
+            )}
+            {ad.category_id && (
+              <div style={s.infoRow}>
+                <span style={s.infoLabel}>Categoria</span>
+                <span>{ad.category_id}{categoryName ? ` — ${categoryName}` : ''}</span>
               </div>
             )}
           </div>

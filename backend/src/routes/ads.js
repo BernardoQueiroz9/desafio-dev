@@ -30,7 +30,7 @@ async function getValidToken(user) {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, category_id, attributes, free_shipping, is_full } = req.body;
+    const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full } = req.body;
 
     if (available_quantity < 1) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
@@ -38,8 +38,11 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!category_id) {
       return res.status(400).json({ error: 'Categoria é obrigatoria' });
     }
-    if (!image) {
-      return res.status(400).json({ error: 'Selecione uma imagem para o anúncio' });
+    if (!images || images.length === 0) {
+      return res.status(400).json({ error: 'Selecione pelo menos uma imagem para o anúncio' });
+    }
+    if (images.length > 5) {
+      return res.status(400).json({ error: 'Máximo de 5 imagens por anúncio' });
     }
     if (!title) {
       return res.status(400).json({ error: 'Titulo é obrigatorio' });
@@ -50,18 +53,19 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const accessToken = await getValidToken(user);
 
-    let pictures;
-    try {
-      const picData = await ml.uploadPicture(accessToken, image);
-      console.error('ML upload response:', JSON.stringify(picData).slice(0, 500));
-      const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
-      if (pictureUrl) {
-        pictures = [{ source: pictureUrl }];
+    let pictures = [];
+    for (const img of images) {
+      try {
+        const picData = await ml.uploadPicture(accessToken, img);
+        const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
+        if (pictureUrl) {
+          pictures.push({ source: pictureUrl });
+        }
+      } catch (uploadErr) {
+        console.error('Upload de imagem falhou:', uploadErr.message);
       }
-    } catch (uploadErr) {
-      console.error('Upload falhou, usando placeholder:', uploadErr.message);
     }
-    if (!pictures) {
+    if (pictures.length === 0) {
       pictures = [{ source: 'https://placehold.co/400x400/FFF/EEE?text=Produto' }];
     }
 
@@ -108,9 +112,11 @@ router.post('/', authMiddleware, async (req, res) => {
       try { await ml.setDescription(accessToken, mlItem.id, description); } catch {}
     }
 
+    const savedImages = pictures.map(p => p.source);
     const newAd = new Ad({
       ml_id: mlItem.id,
-      title, price: Number(price), available_quantity: Number(available_quantity), image, description,
+      title, price: Number(price), available_quantity: Number(available_quantity), description,
+      image: savedImages[0] || '', images: savedImages,
       category_id, free_shipping, is_full,
       user: req.userId,
     });
@@ -205,7 +211,7 @@ router.get('/', authMiddleware, async (req, res) => {
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    const ads = await Ad.find(filter).populate('user', 'name').sort({ createdAt: -1 });
+    const ads = await Ad.find(filter).populate('user', 'name ml_nickname').sort({ createdAt: -1 });
     res.json(ads);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao listar anuncios' });
@@ -214,7 +220,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const ad = await Ad.findById(req.params.id);
+    const ad = await Ad.findById(req.params.id).populate('user', 'name ml_nickname');
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
     res.json(ad);
   } catch (error) {
@@ -261,7 +267,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, free_shipping, is_full } = req.body;
+    const { title, price, available_quantity, images, description, free_shipping, is_full } = req.body;
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
 
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
@@ -290,7 +296,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     ad.title = title;
     ad.price = price;
     ad.available_quantity = available_quantity;
-    if (image !== undefined) ad.image = image;
+    if (images !== undefined) {
+      ad.images = images;
+      ad.image = images[0] || '';
+    }
     if (description !== undefined) ad.description = description;
     if (free_shipping !== undefined) ad.free_shipping = free_shipping;
     if (is_full !== undefined) ad.is_full = is_full;

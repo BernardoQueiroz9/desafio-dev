@@ -146,7 +146,7 @@ function Dashboard() {
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '' });
   const [formData, setFormData] = useState({
     id: null, title: '', price: '', available_quantity: '', image: '',
-    description: '', free_shipping: false, is_full: false, category_id: ''
+    description: '', images: [], free_shipping: false, is_full: false, category_id: ''
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
@@ -214,6 +214,7 @@ function Dashboard() {
           available_quantity: stateAd.available_quantity ?? '',
           image: stateAd.image || '',
           description: stateAd.description || '',
+          images: stateAd.images || (stateAd.image ? [stateAd.image] : []),
           free_shipping: stateAd.free_shipping || false,
           is_full: stateAd.is_full || false,
           category_id: stateAd.category_id || '',
@@ -227,6 +228,7 @@ function Dashboard() {
             available_quantity: ad.data.available_quantity ?? '',
             image: ad.data.image || '',
             description: ad.data.description || '',
+            images: ad.data.images || (ad.data.image ? [ad.data.image] : []),
             free_shipping: ad.data.free_shipping || false,
             is_full: ad.data.is_full || false,
             category_id: ad.data.category_id || '',
@@ -234,7 +236,7 @@ function Dashboard() {
         }).catch(console.error);
       }
     } else {
-      setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
+      setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', images: [], description: '', free_shipping: false, is_full: false, category_id: '' });
     }
   }, [view, editId]);
 
@@ -457,7 +459,7 @@ function Dashboard() {
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="myads-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
               <MyAdsPage onEdit={handleEditAd} onNew={() => {
-                setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
+                setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', images: [], description: '', free_shipping: false, is_full: false, category_id: '' });
                 navigate('/dashboard/novo-anuncio');
               }} fetchAds={fetchAds} />
             </div>
@@ -475,7 +477,7 @@ function Dashboard() {
                   setFormData={setFormData}
                   onSubmit={handleSubmit}
                   onCancel={() => {
-                    setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', description: '', free_shipping: false, is_full: false, category_id: '' });
+                    setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', images: [], description: '', free_shipping: false, is_full: false, category_id: '' });
                     navigate('/dashboard/meus-anuncios');
                   }}
                 />
@@ -485,7 +487,7 @@ function Dashboard() {
         )}
 
         {view === 'product-detail' && (
-          <ProductDetailPage />
+          <ProductDetailPage userName={userName} />
         )}
       </div>
 

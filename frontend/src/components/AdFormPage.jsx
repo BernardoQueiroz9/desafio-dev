@@ -16,18 +16,11 @@ const formatPrice = (v) => {
 export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }) {
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(null);
-  const [preview, setPreview] = useState(formData.image || '');
-  const [imgTab, setImgTab] = useState('url');
-  const [dragOver, setDragOver] = useState(false);
   const [categorySelections, setCategorySelections] = useState([]);
   const fileRef = useRef(null);
-  const dropRef = useRef(null);
 
   const hasLeafCategory = !!formData.category_id;
-
-  useEffect(() => {
-    setPreview(formData.image || '');
-  }, [formData.image]);
+  const images = formData.images || [];
 
   const handleLocalSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +37,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
     }
   };
 
-  const loadFile = (file) => {
+  const addImage = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const img = new Image();
     img.onload = () => {
@@ -60,12 +53,16 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      setPreview(dataUrl);
-      setFormData({ ...formData, image: dataUrl });
+      setFormData({ ...formData, images: [...images, dataUrl] });
     };
     const reader = new FileReader();
     reader.onload = (e) => { img.src = e.target.result; };
     reader.readAsDataURL(file);
+  };
+
+  const removeImage = (index) => {
+    const updated = images.filter((_, i) => i !== index);
+    setFormData({ ...formData, images: updated });
   };
 
   const handlePriceChange = (e) => {
@@ -85,32 +82,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const handlePriceFocus = () => {
     setFocused('price');
     setFormData({ ...formData, price: formData.price.replace(/\./g, '') });
-  };
-
-  const handleFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    loadFile(file);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) loadFile(file);
   };
 
   const fieldCard = (child, label) => (
@@ -135,61 +106,53 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
 
       <form onSubmit={handleLocalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {fieldCard(
-          <div
-            ref={dropRef}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={{ cursor: 'pointer' }}
-            onClick={() => fileRef.current?.click()}
-          >
-            {preview ? (
-              <div style={{ position: 'relative' }}>
-                <img key={preview || 'empty'} src={preview} alt="" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', background: colors.bgBody, marginBottom: '8px' }}
-                  onError={(e) => { e.target.style.display = 'none'; }} />
-                {dragOver && (
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(52,131,250,0.08)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: colors.blue, border: `2px dashed ${colors.blue}`, pointerEvents: 'none' }}>
-                    Solte para substituir
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                width: '100%', height: '160px',
-                border: `2px dashed ${dragOver ? colors.blue : colors.border}`,
+          <div>
+            {images.length === 0 ? (
+              <div onClick={() => fileRef.current?.click()} style={{
+                width: '100%', height: '120px', border: `2px dashed ${colors.border}`,
                 borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', fontSize: '13px', color: dragOver ? colors.blue : colors.textTer,
-                background: dragOver ? '#F0F7FF' : colors.bgBody, marginBottom: '8px',
-                transition: 'all 0.15s',
+                justifyContent: 'center', fontSize: '13px', color: colors.textTer, cursor: 'pointer',
+                background: colors.bgBody, transition: 'all 0.15s',
               }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={dragOver ? colors.blue : colors.textTer} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '6px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={colors.textTer} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <span>Arraste uma imagem aqui</span>
-                <span style={{ fontSize: '11px', marginTop: '2px', opacity: 0.6 }}>ou clique para selecionar</span>
+                <span>Clique para adicionar imagem</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {images.map((src, i) => (
+                  <div key={i} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '4px', overflow: 'hidden', border: `1px solid ${colors.border}` }}>
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div onClick={() => removeImage(i)} style={{
+                      position: 'absolute', top: '2px', right: '2px', width: '18px', height: '18px',
+                      borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#FFF', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700,
+                    }}>✕</div>
+                  </div>
+                ))}
+                {images.length < 5 && (
+                  <div onClick={() => fileRef.current?.click()} style={{
+                    width: '80px', height: '80px', borderRadius: '4px', border: `2px dashed ${colors.border}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', fontSize: '22px', color: colors.textTer,
+                  }}>
+                    <span style={{ fontSize: '22px', lineHeight: 1 }}>+</span>
+                    <span style={{ fontSize: '9px', color: colors.textTer }}>Adicionar</span>
+                  </div>
+                )}
               </div>
             )}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {['url', 'file'].map(t => (
-                <button key={t} type="button" onClick={(e) => { e.stopPropagation(); setImgTab(t); if (t === 'file') fileRef.current?.click(); }}
-                  style={{ flex: 1, padding: '7px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${imgTab === t ? colors.blue : colors.border}`, background: imgTab === t ? colors.blueLight : '#FFF', color: imgTab === t ? colors.blue : colors.textSec }}
-                >{t === 'url' ? 'URL' : 'Arquivo'}</button>
-              ))}
-            </div>
-            {imgTab === 'url' && (
-              <input placeholder="https://..." value={preview}
-                onChange={(e) => { setPreview(e.target.value); setFormData({ ...formData, image: e.target.value }); }}
-                onClick={(e) => e.stopPropagation()}
-                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${colors.border}`, borderRadius: '4px', fontSize: '13px', outline: 'none', marginTop: '6px', boxSizing: 'border-box' }}
-                onFocus={(e) => { e.target.style.borderColor = colors.blue; }}
-                onBlur={(e) => { e.target.style.borderColor = colors.border; }}
-              />
+            <input ref={fileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { addImage(f); e.target.value = ''; } }} style={{ display: 'none' }} />
+            {images.length > 0 && (
+              <p style={{ fontSize: '11px', color: colors.textTer, marginTop: '6px' }}>
+                {images.length}/5 imagens
+              </p>
             )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
           </div>,
-          'Imagem'
+          'Imagens'
         )}
 
         {fieldCard(

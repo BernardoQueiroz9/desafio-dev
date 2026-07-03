@@ -6,6 +6,7 @@ const AdSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   available_quantity: { type: Number, required: true, min: 1 },
   image: { type: String, default: '' },
+  images: [{ type: String }],
   description: { type: String, default: '' },
   free_shipping: { type: Boolean, default: false },
   is_full: { type: Boolean, default: false },
