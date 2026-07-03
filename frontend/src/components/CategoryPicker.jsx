@@ -83,6 +83,41 @@ export default function CategoryPicker({ value, onChange }) {
 
   const selectedPath = selections.map(s => s.name).join(' > ');
 
+  const quickCategories = [
+    { id: 'MLB1430', name: 'Roupas' },
+    { id: 'MLB1136', name: 'Brinquedos' },
+    { id: 'MLB1132', name: 'Ferramentas' },
+    { id: 'MLB1039', name: 'Papelaria' },
+  ];
+
+  if (!levels[0]?.length) {
+    return (
+      <div>
+        <p style={{ fontSize: '13px', color: colors.textSec, marginBottom: '10px' }}>
+          Ou escolha uma categoria rápida:
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {quickCategories.map(cat => (
+            <button key={cat.id} type="button" onClick={() => {
+              setSelections([{ id: cat.id, name: cat.name }]);
+              onChange(cat.id);
+              checkCategory(cat.id);
+            }} style={{
+              padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer', border: '1.5px solid var(--ml-blue)',
+              background: '#FFF', color: 'var(--ml-blue)',
+            }}>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: '11px', color: colors.textTer, marginTop: '10px' }}>
+          Essas categorias funcionam com sua conta atual.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {selectedPath && (
@@ -138,6 +173,29 @@ export default function CategoryPicker({ value, onChange }) {
       {loading && (
         <div style={{ padding: '8px', color: colors.textTer, fontSize: '12px' }}>
           Carregando...
+        </div>
+      )}
+
+      {levels[0]?.length > 0 && (
+        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--ml-border, #eee)' }}>
+          <p style={{ fontSize: '11px', color: colors.textTer, marginBottom: '6px' }}>
+            Categorias recomendadas (funcionam com sua conta):
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {quickCategories.map(cat => (
+              <button key={cat.id} type="button" onClick={() => {
+                setSelections([{ id: cat.id, name: cat.name }]);
+                onChange(cat.id);
+                checkCategory(cat.id);
+              }} style={{
+                padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
+                cursor: 'pointer', border: '1px solid var(--ml-blue)',
+                background: '#FFF', color: 'var(--ml-blue)',
+              }}>
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

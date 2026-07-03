@@ -80,10 +80,9 @@ router.post('/', authMiddleware, async (req, res) => {
       try {
         const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
         for (const attr of reqAttrs) {
-          const id = attr.id;
-          const value = attr.default_value?.value || DEFAULT_ATTRIBUTES[id] || '';
+          const value = attr._picked_value || DEFAULT_ATTRIBUTES[attr.id] || '';
           if (value) {
-            itemAttributes.push({ id, value_name: value });
+            itemAttributes.push({ id: attr.id, value_name: value });
           }
         }
       } catch {}
@@ -91,11 +90,9 @@ router.post('/', authMiddleware, async (req, res) => {
 
     try {
       const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id || user.ml_id, category_id, LISTING_TYPE);
-      if (availableType === null) {
-        console.error('API retornou que listing type não disponível para esta categoria');
-      } else {
-        const hasValidShipping = availableType.shipping_modes?.some(m => ['not_specified', 'custom'].includes(m));
-        if (!hasValidShipping) {
+      if (availableType) {
+        const modes = availableType.shipping_modes || [];
+        if (modes.length > 0 && !modes.some(m => ['not_specified', 'custom'].includes(m))) {
           return res.status(400).json({
             error: 'Esta categoria exige frete Mercado Livre (não disponível pra sua conta). Escolha "Roupas", "Brinquedos" ou "Ferramentas".',
           });

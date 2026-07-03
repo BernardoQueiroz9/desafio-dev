@@ -171,11 +171,22 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
       headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
     });
     const all = Array.isArray(res.data) ? res.data : [];
-    return all.filter(attr =>
-      attr.value_type &&
-      (attr.tags?.some(t => t.includes('required')) ||
-       attr.relevance === 1)
-    );
+    return all
+      .filter(attr =>
+        attr.value_type &&
+        (attr.tags?.some(t => t.includes('required')) ||
+         attr.relevance === 1)
+      )
+      .map(attr => {
+        let value = attr.default_value?.value || '';
+        if (!value && attr.values?.length > 0) {
+          value = attr.values[0].id || attr.values[0].name || '';
+        }
+        if (!value && attr.allowed_values?.length > 0) {
+          value = attr.allowed_values[0].id || attr.allowed_values[0].name || '';
+        }
+        return { ...attr, _picked_value: value };
+      });
   });
 }
 
