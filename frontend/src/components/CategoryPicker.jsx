@@ -13,6 +13,7 @@ export default function CategoryPicker({ value, onChange }) {
   const [selections, setSelections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [checkResult, setCheckResult] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -33,37 +34,39 @@ export default function CategoryPicker({ value, onChange }) {
     }
   }, [value]);
 
+  const checkCategory = async (catId) => {
+    try {
+      const res = await api.get(`/categories/check/${catId}`);
+      setCheckResult(res.data);
+    } catch {
+      setCheckResult(null);
+    }
+  };
+
   const handleSelect = async (catId, catName, levelIndex) => {
     const newSelections = [...selections.slice(0, levelIndex), { id: catId, name: catName }];
     setSelections(newSelections);
+    setCheckResult(null);
 
-    if (levelIndex < levels.length - 1) {
+    const isLastLevel = levelIndex >= levels.length - 1;
+    if (!isLastLevel) {
       setLevels(levels.slice(0, levelIndex + 1));
-      setLoading(true);
-      try {
-        const res = await api.get(`/categories/${catId}/children`);
-        if (res.data.length > 0) {
-          setLevels(prev => [...prev.slice(0, levelIndex + 1), res.data]);
-        }
-        onChange(catId);
-      } catch {
-        onChange(catId);
-      }
-      setLoading(false);
-    } else {
-      setLoading(true);
-      try {
-        const res = await api.get(`/categories/${catId}/children`);
-        if (res.data.length > 0) {
-          setLevels(prev => [...prev, res.data]);
-        } else {
-          onChange(catId);
-        }
-      } catch {
-        onChange(catId);
-      }
-      setLoading(false);
     }
+
+    setLoading(true);
+    try {
+      const res = await api.get(`/categories/${catId}/children`);
+      if (res.data.length > 0) {
+        setLevels(prev => [...prev.slice(0, levelIndex + 1), res.data]);
+      } else {
+        onChange(catId);
+        checkCategory(catId);
+      }
+    } catch {
+      onChange(catId);
+      checkCategory(catId);
+    }
+    setLoading(false);
   };
 
   if (loading && levels.length === 1 && levels[0]?.length === 0) {
@@ -135,6 +138,20 @@ export default function CategoryPicker({ value, onChange }) {
       {loading && (
         <div style={{ padding: '8px', color: colors.textTer, fontSize: '12px' }}>
           Carregando...
+        </div>
+      )}
+
+      {checkResult && (
+        <div style={{
+          marginTop: '10px', padding: '8px 10px', borderRadius: '6px', fontSize: '12px',
+          background: checkResult.compatible ? '#f0fdf4' : '#fef2f2',
+          border: `1px solid ${checkResult.compatible ? '#bbf7d0' : '#fee2e2'}`,
+          color: checkResult.compatible ? '#166534' : '#991b1b',
+        }}>
+          {checkResult.compatible
+            ? '✓ Esta categoria é compatível com anúncios gratuitos.'
+            : '⚠ Esta categoria pode não aceitar anúncios gratuitos. Se falhar, tente "Roupas", "Brinquedos" ou "Ferramentas".'
+          }
         </div>
       )}
     </div>

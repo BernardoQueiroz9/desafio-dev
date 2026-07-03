@@ -91,16 +91,15 @@ router.post('/', authMiddleware, async (req, res) => {
 
     try {
       const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id || user.ml_id, category_id, LISTING_TYPE);
-      if (!availableType) {
-        return res.status(400).json({
-          error: `Esta categoria não aceita anúncios do tipo "${LISTING_TYPE}" para sua conta. Escolha "Roupas", "Brinquedos" ou "Ferramentas".`,
-        });
-      }
-      const hasValidShipping = availableType.shipping_modes?.some(m => ['not_specified', 'custom'].includes(m));
-      if (!hasValidShipping) {
-        return res.status(400).json({
-          error: 'Esta categoria exige frete Mercado Livre (não disponível pra sua conta). Escolha "Roupas", "Brinquedos" ou "Ferramentas".',
-        });
+      if (availableType === null) {
+        console.error('API retornou que listing type não disponível para esta categoria');
+      } else {
+        const hasValidShipping = availableType.shipping_modes?.some(m => ['not_specified', 'custom'].includes(m));
+        if (!hasValidShipping) {
+          return res.status(400).json({
+            error: 'Esta categoria exige frete Mercado Livre (não disponível pra sua conta). Escolha "Roupas", "Brinquedos" ou "Ferramentas".',
+          });
+        }
       }
     } catch (checkErr) {
       console.error('Falha ao verificar listing type (continuando):', checkErr.message);

@@ -31,6 +31,24 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/check/:categoryId', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const accessToken = await getValidAccessToken(user);
+
+    const listingType = await ml.checkAvailableListingType(accessToken, user.ml_user_id, req.params.categoryId, 'gold_special');
+    const compatible = !!listingType;
+    const hasShipping = compatible ? (listingType.shipping_modes?.some(m => ['not_specified', 'custom'].includes(m)) ?? true) : false;
+
+    res.json({ compatible, hasShipping, listingType });
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message;
+    console.error('Erro ao verificar categoria:', msg);
+    res.json({ compatible: true, hasShipping: true, error: msg });
+  }
+});
+
 router.get('/:id/children', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
