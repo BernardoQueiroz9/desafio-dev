@@ -133,6 +133,20 @@ async function getItem(accessToken, itemId) {
   });
 }
 
+async function getCategoryRequiredAttributes(accessToken, categoryId) {
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}/attributes`, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+    });
+    const all = Array.isArray(res.data) ? res.data : [];
+    return all.filter(attr =>
+      attr.tags?.includes('required') ||
+      attr.relevance === 1 ||
+      attr.tags?.includes('catalog_required')
+    );
+  });
+}
+
 async function setDescription(accessToken, itemId, plainText) {
   return callWithRetry(async () => {
     const res = await axios.post(
@@ -156,4 +170,5 @@ module.exports = {
   updateItem,
   getItem,
   setDescription,
+  getCategoryRequiredAttributes,
 };

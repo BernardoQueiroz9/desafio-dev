@@ -23,7 +23,7 @@ async function getValidToken(user) {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, free_shipping, is_full, category_id } = req.body;
+    const { title, price, available_quantity, image, description, free_shipping, is_full, category_id, attributes } = req.body;
 
     if (available_quantity < 1) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
@@ -31,22 +31,30 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!category_id) {
       return res.status(400).json({ error: 'Categoria é obrigatoria' });
     }
+    if (!image) {
+      return res.status(400).json({ error: 'Imagem é obrigatória para criar anúncio' });
+    }
 
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
 
     const accessToken = await getValidToken(user);
 
-    let pictures = [];
-    if (image) {
+    const picData = await ml.uploadPicture(accessToken, image);
+    const pictures = picData.variants
+      ? [{ source: picData.variants[0]?.url || image }]
+      : [{ source: image }];
+
+    let itemAttributes = attributes || [];
+    if (itemAttributes.length === 0) {
       try {
-        const picData = await ml.uploadPicture(accessToken, image);
-        pictures = picData.variants
-          ? [{ source: picData.variants[0]?.url || image }]
-          : [{ source: image }];
-      } catch (picErr) {
-        console.error('Upload de imagem falhou, continuando sem imagem:', picErr.response?.data || picErr.message);
-      }
+        const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
+        for (const attr of reqAttrs) {
+          if (attr.default_value?.value) {
+            itemAttributes.push({ id: attr.id, value_name: attr.default_value.value });
+          }
+        }
+      } catch {}
     }
 
     const payload = {
@@ -58,14 +66,20 @@ router.post('/', authMiddleware, async (req, res) => {
       available_quantity: Number(available_quantity),
       buying_mode: 'buy_it_now',
       listing_type_id: 'gold_special',
+      condition: 'new',
       pictures,
     };
 
+    if (itemAttributes.length > 0) {
+      payload.attributes = itemAttributes;
+    }
+
     if (free_shipping || is_full) {
-      payload.shipping = {
-        free_shipping: !!free_shipping,
-        mode: is_full ? 'me2' : 'not_specified',
-      };
+      if (is_full) {
+        payload.shipping = { mode: 'me2', free_shipping: true };
+      } else {
+        payload.shipping = { free_shipping: true };
+      }
     }
 
     const mlItem = await ml.createItem(accessToken, payload);
