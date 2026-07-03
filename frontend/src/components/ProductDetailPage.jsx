@@ -36,6 +36,17 @@ const s = {
   infoRow: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', fontSize: '14px', color: 'var(--ml-text-secondary)' },
   infoLabel: { fontWeight: 600, color: 'var(--ml-text-primary)', minWidth: '100px' },
   badgesRow: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' },
+  shippingBadge: {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    fontSize: '13px', fontWeight: 600, color: 'var(--ml-green)',
+    padding: '4px 10px', borderRadius: '4px', background: 'var(--ml-green-light)',
+  },
+  fullBadge: {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    fontSize: '12px', fontWeight: 700, color: '#8B6F00',
+    background: '#FDF0D5', padding: '4px 8px', borderRadius: '4px',
+    textTransform: 'uppercase', letterSpacing: '0.3px',
+  },
   descSection: { marginTop: '32px' },
   descTitle: { fontSize: '18px', fontWeight: 600, color: 'var(--ml-text-primary)', marginBottom: '12px' },
   descText: {
@@ -136,7 +147,27 @@ export default function ProductDetailPage() {
               <span style={s.price}>{formatPrice(ad.price)}</span>
             </div>
 
-
+            <div style={s.badgesRow}>
+              {ad.free_shipping && (
+                <div style={s.shippingBadge}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1L11 4.5L8 8L5 4.5L8 1Z" fill="currentColor"/>
+                    <path d="M1 8L4.5 5L8 8L4.5 11L1 8Z" fill="currentColor"/>
+                    <path d="M8 8L11 11L8 15L5 11L8 8Z" fill="currentColor"/>
+                    <path d="M15 8L11 5L8 8L11 11L15 8Z" fill="currentColor"/>
+                  </svg>
+                  Frete grátis
+                </div>
+              )}
+              {ad.is_full && (
+                <div style={s.fullBadge}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B6F00">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                  Full
+                </div>
+              )}
+            </div>
 
             <div style={s.divider} />
 

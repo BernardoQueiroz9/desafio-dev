@@ -102,7 +102,12 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   <span style={{ fontSize: '12px', color: colors.textTer }}>Estoque: {ad.available_quantity}</span>
-
+                  {ad.free_shipping && (
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: colors.green }}>Frete grátis</span>
+                  )}
+                  {ad.is_full && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#8B6F00', background: '#FDF0D5', padding: '1px 5px', borderRadius: '3px' }}>Full</span>
+                  )}
                 </div>
               </div>
               <div className="myads-item-actions" style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>

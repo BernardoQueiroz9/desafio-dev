@@ -7,6 +7,8 @@ const AdSchema = new mongoose.Schema({
   available_quantity: { type: Number, required: true, min: 1 },
   image: { type: String, default: '' },
   description: { type: String, default: '' },
+  free_shipping: { type: Boolean, default: false },
+  is_full: { type: Boolean, default: false },
   category_id: { type: String, default: '' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
