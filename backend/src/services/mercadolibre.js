@@ -66,7 +66,7 @@ async function refreshAccessToken(refreshToken) {
 async function getUser(accessToken) {
   return callWithRetry(async () => {
     const res = await axios.get(`${API_BASE}/users/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
     });
     return res.data;
   });
@@ -100,7 +100,7 @@ async function uploadPicture(accessToken, imageBase64) {
     const res = await axios.post(
       `${API_BASE}/pictures`,
       { source: imageBase64 },
-      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+      { headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
     );
     return res.data;
   });
@@ -109,7 +109,7 @@ async function uploadPicture(accessToken, imageBase64) {
 async function createItem(accessToken, data) {
   return callWithRetry(async () => {
     const res = await axios.post(`${API_BASE}/items`, data, {
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
     return res.data;
   });
@@ -118,7 +118,7 @@ async function createItem(accessToken, data) {
 async function updateItem(accessToken, itemId, data) {
   return callWithRetry(async () => {
     const res = await axios.put(`${API_BASE}/items/${itemId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
     return res.data;
   });
@@ -127,7 +127,7 @@ async function updateItem(accessToken, itemId, data) {
 async function getItem(accessToken, itemId) {
   return callWithRetry(async () => {
     const res = await axios.get(`${API_BASE}/items/${itemId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
     });
     return res.data;
   });
@@ -138,7 +138,7 @@ async function setDescription(accessToken, itemId, plainText) {
     const res = await axios.post(
       `${API_BASE}/items/${itemId}/description`,
       { plain_text: plainText },
-      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+      { headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
     );
     return res.data;
   });
