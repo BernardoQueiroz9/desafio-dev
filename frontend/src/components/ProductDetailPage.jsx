@@ -213,10 +213,10 @@ export default function ProductDetailPage({ userName: propUserName }) {
                 <span>{ad.condition}</span>
               </div>
             )}
-            {ad.category_id && (
+            {categoryName && (
               <div style={s.infoRow}>
                 <span style={s.infoLabel}>Categoria</span>
-                <span>{categoryName || ad.category_id}</span>
+                <span>{categoryName}</span>
               </div>
             )}
           </div>
