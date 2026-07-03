@@ -216,7 +216,7 @@ export default function ProductDetailPage({ userName: propUserName }) {
             {ad.category_id && (
               <div style={s.infoRow}>
                 <span style={s.infoLabel}>Categoria</span>
-                <span>{ad.category_id}{categoryName ? ` — ${categoryName}` : ''}</span>
+                <span>{categoryName || ad.category_id}</span>
               </div>
             )}
           </div>
