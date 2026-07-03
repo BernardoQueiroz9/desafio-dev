@@ -13,7 +13,6 @@ export default function CategoryPicker({ value, onChange }) {
   const [selections, setSelections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [checkResult, setCheckResult] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -34,19 +33,9 @@ export default function CategoryPicker({ value, onChange }) {
     }
   }, [value]);
 
-  const checkCategory = async (catId) => {
-    try {
-      const res = await api.get(`/categories/check/${catId}`);
-      setCheckResult(res.data);
-    } catch {
-      setCheckResult(null);
-    }
-  };
-
   const handleSelect = async (catId, catName, levelIndex) => {
     const newSelections = [...selections.slice(0, levelIndex), { id: catId, name: catName }];
     setSelections(newSelections);
-    setCheckResult(null);
 
     const isLastLevel = levelIndex >= levels.length - 1;
     if (!isLastLevel) {
@@ -60,11 +49,9 @@ export default function CategoryPicker({ value, onChange }) {
         setLevels(prev => [...prev.slice(0, levelIndex + 1), res.data]);
       } else {
         onChange(catId);
-        checkCategory(catId);
       }
     } catch {
       onChange(catId);
-      checkCategory(catId);
     }
     setLoading(false);
   };
@@ -82,41 +69,6 @@ export default function CategoryPicker({ value, onChange }) {
   }
 
   const selectedPath = selections.map(s => s.name).join(' > ');
-
-  const quickCategories = [
-    { id: 'MLB1430', name: 'Roupas' },
-    { id: 'MLB1136', name: 'Brinquedos' },
-    { id: 'MLB1132', name: 'Ferramentas' },
-    { id: 'MLB1039', name: 'Papelaria' },
-  ];
-
-  if (!levels[0]?.length) {
-    return (
-      <div>
-        <p style={{ fontSize: '13px', color: colors.textSec, marginBottom: '10px' }}>
-          Ou escolha uma categoria rápida:
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {quickCategories.map(cat => (
-            <button key={cat.id} type="button" onClick={() => {
-              setSelections([{ id: cat.id, name: cat.name }]);
-              onChange(cat.id);
-              checkCategory(cat.id);
-            }} style={{
-              padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 600,
-              cursor: 'pointer', border: '1.5px solid var(--ml-blue)',
-              background: '#FFF', color: 'var(--ml-blue)',
-            }}>
-              {cat.name}
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: '11px', color: colors.textTer, marginTop: '10px' }}>
-          Essas categorias funcionam com sua conta atual.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -176,42 +128,6 @@ export default function CategoryPicker({ value, onChange }) {
         </div>
       )}
 
-      {levels[0]?.length > 0 && (
-        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--ml-border, #eee)' }}>
-          <p style={{ fontSize: '11px', color: colors.textTer, marginBottom: '6px' }}>
-            Categorias recomendadas (funcionam com sua conta):
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {quickCategories.map(cat => (
-              <button key={cat.id} type="button" onClick={() => {
-                setSelections([{ id: cat.id, name: cat.name }]);
-                onChange(cat.id);
-                checkCategory(cat.id);
-              }} style={{
-                padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
-                cursor: 'pointer', border: '1px solid var(--ml-blue)',
-                background: '#FFF', color: 'var(--ml-blue)',
-              }}>
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {checkResult && (
-        <div style={{
-          marginTop: '10px', padding: '8px 10px', borderRadius: '6px', fontSize: '12px',
-          background: checkResult.compatible ? '#f0fdf4' : '#fef2f2',
-          border: `1px solid ${checkResult.compatible ? '#bbf7d0' : '#fee2e2'}`,
-          color: checkResult.compatible ? '#166534' : '#991b1b',
-        }}>
-          {checkResult.compatible
-            ? '✓ Esta categoria é compatível com anúncios gratuitos.'
-            : '⚠ Esta categoria pode não aceitar anúncios gratuitos. Se falhar, tente "Roupas", "Brinquedos" ou "Ferramentas".'
-          }
-        </div>
-      )}
     </div>
   );
 }

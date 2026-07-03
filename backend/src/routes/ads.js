@@ -88,20 +88,6 @@ router.post('/', authMiddleware, async (req, res) => {
       } catch {}
     }
 
-    try {
-      const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id || user.ml_id, category_id, LISTING_TYPE);
-      if (availableType) {
-        const modes = availableType.shipping_modes || [];
-        if (modes.length > 0 && !modes.some(m => ['not_specified', 'custom'].includes(m))) {
-          return res.status(400).json({
-            error: 'Esta categoria exige frete Mercado Livre (não disponível pra sua conta). Escolha "Roupas", "Brinquedos" ou "Ferramentas".',
-          });
-        }
-      }
-    } catch (checkErr) {
-      console.error('Falha ao verificar listing type (continuando):', checkErr.message);
-    }
-
     const payload = {
       site_id: ML_SITE_ID,
       title,
@@ -142,12 +128,8 @@ router.post('/', authMiddleware, async (req, res) => {
       cause.forEach((c, i) => console.error(`  cause[${i}]:`, c));
     }
     let userMsg = errData.message || error.message || 'Erro ao criar anuncio';
-    if (cause.some(c => c.includes('mode me1') || c.includes('mandatory free shipping'))) {
-      userMsg = 'Sua conta ainda não pode usar frete do Mercado Livre. Escolha uma categoria que não exija frete, como "Roupas", "Brinquedos", "Ferramentas" ou "Papelaria".';
-    } else if (cause.some(c => c.includes('Maximum length'))) {
-      userMsg = 'A imagem selecionada é muito grande ou inválida. Tente outra imagem.';
-    } else if (cause.some(c => c.includes('attributes') && c.includes('required'))) {
-      userMsg = `Esta categoria exige atributos específicos. Tente "Roupas", "Brinquedos" ou "Ferramentas" que são mais simples.`;
+    if (cause.length) {
+      userMsg += ' (' + cause.join('; ') + ')';
     }
     res.status(500).json({
       error: userMsg,
