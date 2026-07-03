@@ -210,6 +210,15 @@ async function checkAvailableListingType(accessToken, userId, categoryId, listin
   return types.find(t => (t.id || t.listing_type_id) === listingTypeId) || null;
 }
 
+async function getCategory(accessToken, categoryId) {
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}`, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+    });
+    return res.data;
+  });
+}
+
 async function setDescription(accessToken, itemId, plainText) {
   return callWithRetry(async () => {
     const res = await axios.post(
@@ -235,4 +244,5 @@ module.exports = {
   setDescription,
   getCategoryRequiredAttributes,
   checkAvailableListingType,
+  getCategory,
 };

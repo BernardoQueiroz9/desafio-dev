@@ -28,12 +28,39 @@ export default function CategoryPicker({ value, onChange }) {
   }, []);
 
   useEffect(() => {
-    if (value && selections.length === 0) {
-      onChange(value);
+    if (!value || selections.length > 0 || levels.length === 0) return;
+    loadCategoryPath(value);
+  }, [value, levels]);
+
+  async function loadCategoryPath(catId) {
+    setLoading(true);
+    try {
+      const res = await api.get(`/categories/${catId}`);
+      const path = res.data.path_from_root || [];
+      if (path.length === 0) {
+        onChange(catId);
+        return;
+      }
+      const newSelections = path.map(p => ({ id: p.id, name: p.name }));
+      setSelections(newSelections);
+
+      const newLevels = [levels[0]];
+      for (let i = 0; i < path.length - 1; i++) {
+        const { data } = await api.get(`/categories/${path[i].id}/children`);
+        newLevels.push(data);
+      }
+      setLevels(newLevels);
+    } catch (err) {
+      console.error('Erro ao carregar caminho da categoria:', err);
+      onChange(catId);
+    } finally {
+      setLoading(false);
     }
-  }, [value]);
+  }
 
   const handleSelect = async (catId, catName, levelIndex) => {
+    onChange(catId);
+
     const newSelections = [...selections.slice(0, levelIndex), { id: catId, name: catName }];
     setSelections(newSelections);
 
@@ -47,12 +74,8 @@ export default function CategoryPicker({ value, onChange }) {
       const res = await api.get(`/categories/${catId}/children`);
       if (res.data.length > 0) {
         setLevels(prev => [...prev.slice(0, levelIndex + 1), res.data]);
-      } else {
-        onChange(catId);
       }
-    } catch {
-      onChange(catId);
-    }
+    } catch {}
     setLoading(false);
   };
 
