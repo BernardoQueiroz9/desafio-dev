@@ -39,10 +39,14 @@ router.post('/', authMiddleware, async (req, res) => {
 
     let pictures = [];
     if (image) {
-      const picData = await ml.uploadPicture(accessToken, image);
-      pictures = picData.variants
-        ? [{ source: picData.variants[0]?.url || image }]
-        : [{ source: image }];
+      try {
+        const picData = await ml.uploadPicture(accessToken, image);
+        pictures = picData.variants
+          ? [{ source: picData.variants[0]?.url || image }]
+          : [{ source: image }];
+      } catch (picErr) {
+        console.error('Upload de imagem falhou, continuando sem imagem:', picErr.response?.data || picErr.message);
+      }
     }
 
     const mlItem = await ml.createItem(accessToken, {
@@ -76,8 +80,12 @@ router.post('/', authMiddleware, async (req, res) => {
 
     res.status(201).json(newAd);
   } catch (error) {
-    console.error('Erro ao criar anuncio:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data?.message || error.message || 'Erro ao criar anuncio' });
+    const detail = error.response?.data || error.message;
+    console.error('Erro ao criar anuncio:', JSON.stringify(detail));
+    res.status(500).json({
+      error: error.response?.data?.message || error.message || 'Erro ao criar anuncio',
+      details: error.response?.data || null,
+    });
   }
 });
 

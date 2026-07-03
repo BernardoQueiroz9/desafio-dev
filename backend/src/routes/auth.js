@@ -89,19 +89,20 @@ router.get('/me', authMiddleware, async (req, res) => {
       mlProfile = await ml.getUser(user.ml_access_token);
     } catch {}
 
-    const sellerStatus = mlProfile?.status?.seller_status || null;
-    const isSeller = sellerStatus === 'active';
-    const isBuyer = mlProfile?.status?.buyer_status === 'active';
+    const canSell = mlProfile?.status?.sell?.allow === true;
+    const sellerExperience = mlProfile?.seller_experience;
+    const isSeller = canSell && !!sellerExperience;
 
     res.json({
       name: user.name,
       email: user.email,
       ml_user_id: user.ml_user_id,
       ml_seller: isSeller,
-      ml_seller_status: sellerStatus,
-      ml_buyer_status: mlProfile?.status?.buyer_status || null,
+      ml_can_sell: canSell,
+      ml_seller_experience: sellerExperience,
       ml_nickname: mlProfile?.nickname || null,
       ml_tags: mlProfile?.tags || [],
+      ml_mercadoenvios: mlProfile?.status?.mercadoenvios || null,
       _dump: mlProfile,
     });
   } catch (err) {
