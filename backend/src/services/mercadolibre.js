@@ -77,16 +77,20 @@ const BASE_HEADERS = {
   'Accept': 'application/json',
 };
 
-async function getCategories(siteId) {
+async function getCategories(siteId, accessToken) {
+  const headers = { ...BASE_HEADERS };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   return callWithRetry(async () => {
-    const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`, { headers: BASE_HEADERS });
+    const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`, { headers });
     return res.data;
   });
 }
 
-async function getCategoryChildren(categoryId) {
+async function getCategoryChildren(categoryId, accessToken) {
+  const headers = { ...BASE_HEADERS };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   return callWithRetry(async () => {
-    const res = await axios.get(`${API_BASE}/categories/${categoryId}`, { headers: BASE_HEADERS });
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}`, { headers });
     return res.data.children_categories || [];
   });
 }
