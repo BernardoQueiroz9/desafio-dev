@@ -61,9 +61,10 @@ router.post('/', authMiddleware, async (req, res) => {
     const accessToken = await getValidToken(user);
 
     const picData = await ml.uploadPicture(accessToken, image);
-    const pictureUrl = picData.variants?.[0]?.url;
+    console.error('ML upload response:', JSON.stringify(picData).slice(0, 500));
+    const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
     if (!pictureUrl) {
-      return res.status(500).json({ error: 'Upload da imagem falhou. Tente outra imagem.' });
+      return res.status(500).json({ error: 'Upload da imagem falhou.', details: picData });
     }
     const pictures = [{ source: pictureUrl }];
 

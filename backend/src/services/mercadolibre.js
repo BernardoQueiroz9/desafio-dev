@@ -112,13 +112,27 @@ async function uploadPicture(accessToken, imageDataUrl) {
       const form = new FormData();
       form.append('file', fs.createReadStream(tmpFile));
 
+      const headers = {
+        ...BASE_HEADERS,
+        Authorization: `Bearer ${accessToken}`,
+        ...form.getHeaders(),
+      };
+
       const res = await axios.post(`${API_BASE}/pictures`, form, {
-        headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, ...form.getHeaders() },
+        headers,
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
       });
-      return res.data;
+
+      const data = res.data;
+      if (data && data.id) {
+        data.secure_url = `https://http2.mlstatic.com/storage/pictures/${data.id}`;
+      }
+      return data;
     });
+  } catch (err) {
+    console.error('uploadPicture error:', err.response?.data || err.message);
+    throw err;
   } finally {
     try { fs.unlinkSync(tmpFile); } catch {}
   }
