@@ -9,7 +9,9 @@ router.get('/', async (req, res) => {
     const categories = await ml.getCategories(ML_SITE_ID);
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao buscar categorias' });
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+    console.error('Erro ao buscar categorias:', msg);
+    res.status(500).json({ error: 'Erro ao buscar categorias: ' + msg });
   }
 });
 
@@ -18,7 +20,9 @@ router.get('/:id/children', async (req, res) => {
     const children = await ml.getCategoryChildren(req.params.id);
     res.json(children);
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao buscar subcategorias' });
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+    console.error('Erro ao buscar subcategorias:', msg);
+    res.status(500).json({ error: 'Erro ao buscar subcategorias: ' + msg });
   }
 });
 

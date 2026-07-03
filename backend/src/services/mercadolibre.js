@@ -72,16 +72,21 @@ async function getUser(accessToken) {
   });
 }
 
+const BASE_HEADERS = {
+  'User-Agent': 'DesafioML/1.0',
+  'Accept': 'application/json',
+};
+
 async function getCategories(siteId) {
   return callWithRetry(async () => {
-    const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`);
+    const res = await axios.get(`${API_BASE}/sites/${siteId}/categories`, { headers: BASE_HEADERS });
     return res.data;
   });
 }
 
 async function getCategoryChildren(categoryId) {
   return callWithRetry(async () => {
-    const res = await axios.get(`${API_BASE}/categories/${categoryId}`);
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}`, { headers: BASE_HEADERS });
     return res.data.children_categories || [];
   });
 }
