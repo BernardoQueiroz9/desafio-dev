@@ -49,10 +49,15 @@ router.post('/', authMiddleware, async (req, res) => {
     if (itemAttributes.length === 0) {
       try {
         const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
-        for (const attr of reqAttrs) {
-          if (attr.default_value?.value) {
-            itemAttributes.push({ id: attr.id, value_name: attr.default_value.value });
-          }
+        const fillable = reqAttrs.filter(a => a.default_value?.value);
+        for (const attr of fillable) {
+          itemAttributes.push({ id: attr.id, value_name: attr.default_value.value });
+        }
+        if (reqAttrs.length > 0 && fillable.length === 0) {
+          const attrNames = reqAttrs.map(a => a.name || a.id).join(', ');
+          return res.status(400).json({
+            error: `Esta categoria exige atributos que não podem ser preenchidos automaticamente (${attrNames}). Escolha uma categoria mais simples (ex: Roupas, Eletrônicos).`,
+          });
         }
       } catch {}
     }
@@ -74,14 +79,6 @@ router.post('/', authMiddleware, async (req, res) => {
       payload.attributes = itemAttributes;
     }
 
-    if (free_shipping || is_full) {
-      if (is_full) {
-        payload.shipping = { mode: 'me2', free_shipping: true };
-      } else {
-        payload.shipping = { free_shipping: true };
-      }
-    }
-
     const mlItem = await ml.createItem(accessToken, payload);
 
     if (description) {
@@ -90,7 +87,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const newAd = new Ad({
       ml_id: mlItem.id,
-      title, price, available_quantity, image, description, free_shipping, is_full,
+      title, price: Number(price), available_quantity: Number(available_quantity), image, description,
+      free_shipping: !!free_shipping, is_full: !!is_full,
       category_id,
       user: req.userId,
     });
