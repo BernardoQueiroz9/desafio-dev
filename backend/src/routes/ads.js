@@ -72,8 +72,11 @@ router.post('/', authMiddleware, async (req, res) => {
         for (const attr of reqAttrs) {
           if (attr.value_type === 'list' && attr._picked_value_id) {
             itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
-          } else if (attr._picked_value) {
-            itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
+          } else {
+            const val = attr._picked_value || DEFAULT_ATTRIBUTES[attr.id] || '';
+            if (val) {
+              itemAttributes.push({ id: attr.id, value_name: val });
+            }
           }
         }
       } catch (attrErr) {
