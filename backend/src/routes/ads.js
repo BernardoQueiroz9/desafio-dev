@@ -85,7 +85,20 @@ router.post('/', authMiddleware, async (req, res) => {
             itemAttributes.push({ id: attr.id, value_name: value });
           }
         }
-      } catch {}
+        const addedIds = new Set(itemAttributes.map(a => a.id));
+        for (const [id, value] of Object.entries(DEFAULT_ATTRIBUTES)) {
+          if (!addedIds.has(id) && value) {
+            itemAttributes.push({ id, value_name: value });
+          }
+        }
+      } catch (attrErr) {
+        console.error('Falha ao buscar atributos da categoria, usando defaults:', attrErr.message);
+        for (const [id, value] of Object.entries(DEFAULT_ATTRIBUTES)) {
+          if (value) {
+            itemAttributes.push({ id, value_name: value });
+          }
+        }
+      }
     }
 
     const payload = {
@@ -130,6 +143,9 @@ router.post('/', authMiddleware, async (req, res) => {
     let userMsg = errData.message || error.message || 'Erro ao criar anuncio';
     if (cause.length) {
       userMsg += ' (' + cause.join('; ') + ')';
+    }
+    if (cause.some(c => c.includes('me1') || c.includes('mercadoenvios'))) {
+      userMsg = 'Sua conta não possui Mercado Envios (me1). Essa categoria exige frete integrado. Tente uma categoria diferente, como Roupas (MLB1430) ou Brinquedos (MLB1136).';
     }
     res.status(500).json({
       error: userMsg,

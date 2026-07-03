@@ -172,11 +172,13 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
     });
     const all = Array.isArray(res.data) ? res.data : [];
     return all
-      .filter(attr =>
-        attr.value_type &&
-        (attr.tags?.some(t => t.includes('required')) ||
-         attr.relevance === 1)
-      )
+      .filter(attr => {
+        if (!attr.value_type) return false;
+        const hasRequiredTag = attr.tags?.some(t => t.includes('required'));
+        const hasRelevance = attr.relevance > 0;
+        const hasPickableValue = attr.allowed_values?.length > 0 || attr.values?.length > 0 || attr.default_value?.value;
+        return hasRequiredTag || hasRelevance || hasPickableValue;
+      })
       .map(attr => {
         let value = attr.default_value?.value || '';
         if (!value && attr.values?.length > 0) {
