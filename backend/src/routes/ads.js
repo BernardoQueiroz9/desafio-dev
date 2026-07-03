@@ -113,11 +113,16 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const savedImages = pictures.map(p => p.source);
+    let categoryName = '';
+    try {
+      const catData = await ml.getCategory(accessToken, category_id);
+      categoryName = catData.name || '';
+    } catch {}
     const newAd = new Ad({
       ml_id: mlItem.id,
       title, price: Number(price), available_quantity: Number(available_quantity), description,
       image: savedImages[0] || '', images: savedImages,
-      category_id, free_shipping, is_full,
+      category_id, category_name: categoryName, free_shipping, is_full,
       user: req.userId,
     });
     await newAd.save();

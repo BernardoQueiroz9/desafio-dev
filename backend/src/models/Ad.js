@@ -11,6 +11,7 @@ const AdSchema = new mongoose.Schema({
   free_shipping: { type: Boolean, default: false },
   is_full: { type: Boolean, default: false },
   category_id: { type: String, default: '' },
+  category_name: { type: String, default: '' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 

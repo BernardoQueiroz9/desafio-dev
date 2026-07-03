@@ -71,7 +71,6 @@ export default function ProductDetailPage({ userName: propUserName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [categoryName, setCategoryName] = useState(null);
 
   const sellerName = propUserName || localStorage.getItem('userName') || 'Vendedor';
 
@@ -84,11 +83,6 @@ export default function ProductDetailPage({ userName: propUserName }) {
     api.get(`/ads/${id}`).then(res => {
       setAd(res.data);
       setLoading(false);
-      if (res.data.category_id) {
-        api.get(`/categories/${res.data.category_id}`).then(catRes => {
-          setCategoryName(catRes.data.name);
-        }).catch(() => {});
-      }
     }).catch(() => {
       setError('Anúncio não encontrado');
       setLoading(false);
@@ -213,10 +207,10 @@ export default function ProductDetailPage({ userName: propUserName }) {
                 <span>{ad.condition}</span>
               </div>
             )}
-            {categoryName && (
+            {ad.category_name && (
               <div style={s.infoRow}>
                 <span style={s.infoLabel}>Categoria</span>
-                <span>{categoryName}</span>
+                <span>{ad.category_name}</span>
               </div>
             )}
           </div>
