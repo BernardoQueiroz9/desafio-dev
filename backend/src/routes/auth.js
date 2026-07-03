@@ -102,6 +102,9 @@ router.get('/me', authMiddleware, async (req, res) => {
       ml_buyer_status: mlProfile?.status?.buyer_status || null,
       ml_nickname: mlProfile?.nickname || null,
       ml_tags: mlProfile?.tags || [],
+      _raw_status: mlProfile?.status || null,
+      _raw_seller_experience: mlProfile?.seller_experience || null,
+      _raw_seller_reputation: mlProfile?.seller_reputation || null,
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar usuário' });
