@@ -95,13 +95,20 @@ async function getCategoryChildren(categoryId, accessToken) {
   });
 }
 
-async function uploadPicture(accessToken, imageBase64) {
+async function uploadPicture(accessToken, imageDataUrl) {
   return callWithRetry(async () => {
-    const res = await axios.post(
-      `${API_BASE}/pictures`,
-      { source: imageBase64 },
-      { headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
-    );
+    const matches = imageDataUrl.match(/^data:(.+?);base64,(.+)$/);
+    if (!matches) throw new Error('Formato de imagem invalido');
+    const mimeType = matches[1];
+    const buffer = Buffer.from(matches[2], 'base64');
+    const ext = mimeType.split('/')[1] || 'jpg';
+
+    const form = new FormData();
+    form.append('file', new Blob([buffer], { type: mimeType }), `image.${ext}`);
+
+    const res = await axios.post(`${API_BASE}/pictures`, form, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+    });
     return res.data;
   });
 }
