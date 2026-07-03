@@ -141,6 +141,7 @@ function Dashboard() {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
+  const [apiErrorDetails, setApiErrorDetails] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '' });
   const [formData, setFormData] = useState({
@@ -171,6 +172,7 @@ function Dashboard() {
     abortRef.current = controller;
     setLoading(true);
     setApiError(null);
+    setApiErrorDetails(null);
     const params = {};
     const minP = f?.minPrice || filters.minPrice;
     const maxP = f?.maxPrice || filters.maxPrice;
@@ -303,9 +305,11 @@ function Dashboard() {
       navigate('/dashboard/meus-anuncios');
       fetchAds();
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Erro na requisição';
+      const data = err.response?.data || {};
+      const msg = data.error || err.message || 'Erro na requisição';
       console.error('Submit error:', err);
       setApiError(msg);
+      setApiErrorDetails(data.details || null);
     }
   };
 
@@ -464,7 +468,7 @@ function Dashboard() {
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="form-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
               {apiError ? (
-                <ErrorScreen message={apiError} onRetry={() => setApiError(null)} />
+                <ErrorScreen message={apiError} details={apiErrorDetails} onRetry={() => { setApiError(null); setApiErrorDetails(null); }} />
               ) : (
                 <AdFormPage key={editId || 'new'}
                   formData={formData}

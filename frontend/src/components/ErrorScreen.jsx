@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export default function ErrorScreen({ message, onRetry, fullPage }) {
+export default function ErrorScreen({ message, details, onRetry, fullPage }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -44,6 +44,23 @@ export default function ErrorScreen({ message, onRetry, fullPage }) {
       }}>
         {message || 'Não foi possível completar a operação. Verifique sua conexão e tente novamente.'}
       </p>
+
+      {details && details.cause && details.cause.length > 0 && (
+        <div style={{
+          textAlign: 'left', maxWidth: '400px', width: '100%',
+          marginBottom: '16px', padding: '12px', borderRadius: '8px',
+          background: '#fef2f2', border: '1px solid #fee2e2',
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#991b1b', marginBottom: '6px' }}>
+            Detalhes do erro:
+          </p>
+          {details.cause.map((c, i) => (
+            <p key={i} style={{ fontSize: '12px', color: '#7f1d1d', marginBottom: '4px', lineHeight: '1.4' }}>
+              {c.message || c.code || JSON.stringify(c)}
+            </p>
+          ))}
+        </div>
+      )}
 
       {onRetry && (
         <button
