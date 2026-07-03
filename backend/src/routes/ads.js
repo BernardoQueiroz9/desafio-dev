@@ -70,6 +70,7 @@ router.post('/', authMiddleware, async (req, res) => {
       try {
         const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
         for (const attr of reqAttrs) {
+          if (attr.id === 'ITEM_CONDITION') continue;
           if (attr.value_type === 'list' && attr._picked_value_id) {
             itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
           } else {
@@ -260,7 +261,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, free_shipping, is_full } = req.body;
+    const { title, price, available_quantity, image, description } = req.body;
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
 
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
@@ -291,8 +292,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
     ad.available_quantity = available_quantity;
     if (image !== undefined) ad.image = image;
     if (description !== undefined) ad.description = description;
-    if (free_shipping !== undefined) ad.free_shipping = free_shipping;
-    if (is_full !== undefined) ad.is_full = is_full;
     await ad.save();
 
     res.json(ad);

@@ -122,21 +122,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
     outline: 'none', background: 'transparent', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
-  const toggleStyle = (active) => ({
-    flex: 1,
-    padding: '9px 12px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: `1.5px solid ${active ? colors.blue : colors.border}`,
-    background: active ? colors.blueLight : '#FFF',
-    color: active ? colors.blue : colors.textSec,
-    textAlign: 'center',
-    transition: 'all 0.15s',
-    userSelect: 'none',
-  });
-
   return (
     <div style={{ width: '100%' }} className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -259,41 +244,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
           'Detalhes do Produto'
         )}
 
-        <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Opções de envio</p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div
-              onClick={() => setFormData({ ...formData, free_shipping: !formData.free_shipping })}
-              style={toggleStyle(formData.free_shipping)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  {formData.free_shipping ? (
-                    <><polyline points="20 6 9 17 4 12"/></>
-                  ) : (
-                    <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>
-                  )}
-                </svg>
-                Frete Grátis
-              </div>
-            </div>
-            <div
-              onClick={() => setFormData({ ...formData, is_full: !formData.is_full })}
-              style={toggleStyle(formData.is_full)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  {formData.is_full ? (
-                    <><polyline points="20 6 9 17 4 12"/></>
-                  ) : (
-                    <><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>
-                  )}
-                </svg>
-                Full (Mercado Envios)
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="submit" disabled={submitting} style={{
