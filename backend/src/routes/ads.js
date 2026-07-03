@@ -30,7 +30,7 @@ async function getValidToken(user) {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, image, description, category_id, attributes } = req.body;
+    const { title, price, available_quantity, image, description, category_id, attributes, free_shipping, is_full } = req.body;
 
     if (available_quantity < 1) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
@@ -111,7 +111,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const newAd = new Ad({
       ml_id: mlItem.id,
       title, price: Number(price), available_quantity: Number(available_quantity), image, description,
-      category_id,
+      category_id, free_shipping, is_full,
       user: req.userId,
     });
     await newAd.save();
