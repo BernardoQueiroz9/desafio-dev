@@ -147,9 +147,9 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
     });
     const all = Array.isArray(res.data) ? res.data : [];
     return all.filter(attr =>
-      attr.tags?.includes('required') ||
-      attr.relevance === 1 ||
-      attr.tags?.includes('catalog_required')
+      attr.value_type &&
+      (attr.tags?.some(t => t.includes('required')) ||
+       attr.relevance === 1)
     );
   });
 }
