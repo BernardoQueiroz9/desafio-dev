@@ -150,6 +150,7 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [sellerActive, setSellerActive] = useState(true);
   const abortRef = useRef(null);
 
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -194,6 +195,9 @@ function Dashboard() {
       return;
     }
     loadAds();
+    api.get('/auth/me').then(res => {
+      if (res.data.ml_seller === false) setSellerActive(false);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -355,6 +359,17 @@ function Dashboard() {
         navTarget={navTarget}
         navLabel={navLabel}
       />
+
+      {!sellerActive && (
+        <div style={{
+          background: '#FFF3CD', color: '#856404', padding: '10px 24px',
+          fontSize: '13px', fontWeight: 500, textAlign: 'center',
+          borderBottom: '1px solid #FFEAA7',
+        }}>
+          Sua conta do Mercado Livre não está ativa como vendedora.
+          Acesse o site do ML, clique em "Vender" e complete o cadastro para criar anúncios.
+        </div>
+      )}
 
       <div style={{
         display: 'flex',

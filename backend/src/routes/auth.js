@@ -89,15 +89,16 @@ router.get('/me', authMiddleware, async (req, res) => {
       mlProfile = await ml.getUser(user.ml_access_token);
     } catch {}
 
-    const isSeller = mlProfile?.status?.seller_status === 'active' || mlProfile?.seller_experience;
+    const sellerStatus = mlProfile?.status?.seller_status || null;
+    const isSeller = sellerStatus === 'active';
     const isBuyer = mlProfile?.status?.buyer_status === 'active';
 
     res.json({
       name: user.name,
       email: user.email,
       ml_user_id: user.ml_user_id,
-      ml_seller: !!isSeller,
-      ml_seller_status: mlProfile?.status?.seller_status || null,
+      ml_seller: isSeller,
+      ml_seller_status: sellerStatus,
       ml_buyer_status: mlProfile?.status?.buyer_status || null,
       ml_nickname: mlProfile?.nickname || null,
       ml_tags: mlProfile?.tags || [],
