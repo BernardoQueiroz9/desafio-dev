@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 
 const API_BASE = 'https://api.mercadolibre.com';
 const AUTH_BASE = 'https://auth.mercadolivre.com.br';
@@ -99,15 +100,14 @@ async function uploadPicture(accessToken, imageDataUrl) {
   return callWithRetry(async () => {
     const matches = imageDataUrl.match(/^data:(.+?);base64,(.+)$/);
     if (!matches) throw new Error('Formato de imagem invalido');
-    const mimeType = matches[1];
     const buffer = Buffer.from(matches[2], 'base64');
-    const ext = mimeType.split('/')[1] || 'jpg';
+    const ext = matches[1].split('/')[1] || 'jpg';
 
     const form = new FormData();
-    form.append('file', new Blob([buffer], { type: mimeType }), `image.${ext}`);
+    form.append('file', buffer, { filename: `image.${ext}`, contentType: matches[1] });
 
     const res = await axios.post(`${API_BASE}/pictures`, form, {
-      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, ...form.getHeaders() },
     });
     return res.data;
   });

@@ -53,10 +53,11 @@ router.post('/', authMiddleware, async (req, res) => {
         for (const attr of fillable) {
           itemAttributes.push({ id: attr.id, value_name: attr.default_value.value });
         }
-        if (reqAttrs.length > 0 && fillable.length === 0) {
-          const attrNames = reqAttrs.map(a => a.name || a.id).join(', ');
+        if (reqAttrs.length > fillable.length) {
+          const missing = reqAttrs.filter(a => !a.default_value?.value);
+          const attrNames = missing.map(a => a.name || a.id).join(', ');
           return res.status(400).json({
-            error: `Esta categoria exige atributos que não podem ser preenchidos automaticamente (${attrNames}). Escolha uma categoria mais simples (ex: Roupas, Eletrônicos).`,
+            error: `Esta categoria exige atributos que não podem ser preenchidos automaticamente (${attrNames}). Escolha categorias como "Roupas", "Eletrônicos", "Brinquedos" ou "Ferramentas".`,
           });
         }
       } catch {}
@@ -98,12 +99,16 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (error) {
     const errData = error.response?.data || {};
     console.error('Erro ao criar anuncio:', JSON.stringify(errData, null, 2));
-    const cause = errData.cause || [];
+    const cause = (errData.cause || []).map(c => typeof c === 'string' ? c : (c.message || ''));
     if (cause.length) {
-      cause.forEach((c, i) => console.error(`  cause[${i}]:`, JSON.stringify(c)));
+      cause.forEach((c, i) => console.error(`  cause[${i}]:`, c));
+    }
+    let userMsg = errData.message || error.message || 'Erro ao criar anuncio';
+    if (cause.some(c => c.includes('mandatory free shipping') || c.includes('mode me1'))) {
+      userMsg = 'Sua conta não tem Mercado Envios (frete) habilitado. Escolha categorias que não exijam frete gratuito obrigatório, como "Roupas", "Brinquedos" ou "Ferramentas".';
     }
     res.status(500).json({
-      error: errData.message || error.message || 'Erro ao criar anuncio',
+      error: userMsg,
       details: errData,
     });
   }
