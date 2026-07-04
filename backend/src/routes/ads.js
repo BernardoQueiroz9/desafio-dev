@@ -186,7 +186,13 @@ router.post('/', authMiddleware, async (req, res) => {
     const statusCode = error.response?.status || 500;
     res.status(statusCode >= 400 && statusCode < 500 ? statusCode : 500).json({
       error: userMsg,
-      _debug: { status: error.response?.status, ml: errData },
+      _debug: {
+        status: error.response?.status || null,
+        code: error.code || null,
+        message: error.message || null,
+        ml: errData,
+        stack: (error.stack || '').split('\n').slice(0, 4),
+      },
     });
   }
 });
