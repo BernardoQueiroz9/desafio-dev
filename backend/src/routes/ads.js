@@ -62,11 +62,14 @@ router.post('/', authMiddleware, async (req, res) => {
       console.error('listing_type escolhido:', listingType, 'de', JSON.stringify(availableIds));
     }
 
+    // pictures = enviado ao ML (usa o id da imagem); savedImages = urls p/ exibir.
     let pictures = [];
+    let savedImages = [];
     for (const img of images) {
       const picData = await ml.uploadPicture(accessToken, img);
-      if (picData && picData.source) {
-        pictures.push(picData);
+      if (picData && (picData.id || picData.source)) {
+        pictures.push(picData.id ? { id: picData.id } : { source: picData.source });
+        savedImages.push(picData.source || '');
       }
     }
     if (pictures.length === 0) {
@@ -150,7 +153,6 @@ router.post('/', authMiddleware, async (req, res) => {
       }
     }
 
-    const savedImages = pictures.map(p => p.source);
     let categoryName = '';
     try {
       const catData = await ml.getCategory(accessToken, category_id);

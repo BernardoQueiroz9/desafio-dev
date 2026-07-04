@@ -129,17 +129,16 @@ async function uploadPicture(accessToken, imageDataUrl) {
         maxBodyLength: Infinity,
       });
 
-      const data = res.data;
-      if (data && data.variants?.[0]?.url) {
-        return { source: data.variants[0].url };
+      const data = res.data || {};
+      // A API /pictures do ML retorna { id, variations: [{ url, secure_url }] }.
+      // Preferimos o `id` (jeito recomendado p/ associar ao item); a URL serve
+      // para exibir a imagem localmente.
+      const variation = data.variations?.[0] || data.variants?.[0] || {};
+      const url = variation.secure_url || variation.url || data.secure_url || data.url || null;
+      if (data.id || url) {
+        return { id: data.id || null, source: url };
       }
-      if (data && data.secure_url) {
-        return { source: data.secure_url };
-      }
-      if (data && data.url) {
-        return { source: data.url };
-      }
-      throw new Error('Resposta da API de imagens sem URL');
+      throw new Error('Resposta da API de imagens sem URL: ' + JSON.stringify(data).slice(0, 300));
     });
   } catch (err) {
     console.error('uploadPicture error:', err.response?.data || err.message);
