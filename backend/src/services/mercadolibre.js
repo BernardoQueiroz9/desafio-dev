@@ -212,7 +212,8 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
   });
 }
 
-async function checkAvailableListingType(accessToken, userId, categoryId, listingTypeId) {
+// Retorna a lista bruta de tipos de anuncio disponiveis para o usuario+categoria.
+async function getAvailableListingTypes(accessToken, userId, categoryId) {
   const res = await callWithRetry(async () => {
     return await axios.get(
       `${API_BASE}/users/${userId}/available_listing_types`,
@@ -221,6 +222,11 @@ async function checkAvailableListingType(accessToken, userId, categoryId, listin
   });
   const types = Array.isArray(res.data) ? res.data : (res.data.available_listing_types || []);
   console.error('available_listing_types response:', JSON.stringify(types).slice(0, 800));
+  return types;
+}
+
+async function checkAvailableListingType(accessToken, userId, categoryId, listingTypeId) {
+  const types = await getAvailableListingTypes(accessToken, userId, categoryId);
   return types.find(t => (t.id || t.listing_type_id) === listingTypeId) || null;
 }
 
@@ -334,6 +340,7 @@ module.exports = {
   setDescription,
   getCategoryRequiredAttributes,
   checkAvailableListingType,
+  getAvailableListingTypes,
   getCategory,
   validateItem,
   getCategorySaleTerms,

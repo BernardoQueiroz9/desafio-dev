@@ -8,7 +8,6 @@ const { handleReauth } = require('../services/errors');
 const router = express.Router();
 
 const ML_SITE_ID = config.ml.siteId;
-const LISTING_TYPE = 'gold_special';
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
@@ -46,10 +45,19 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const accessToken = await user.getValidToken();
 
-    const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id, category_id, LISTING_TYPE);
-    if (!availableType) {
-      return res.status(400).json({ error: 'O tipo de anúncio gold_special não está disponível para esta categoria ou sua conta. Tente uma categoria diferente.' });
+    // Escolhe o melhor tipo de anuncio DISPONIVEL para esta categoria+conta,
+    // em vez de exigir gold_special fixo (que pode nao existir p/ contas de
+    // teste ou certas categorias). Preferencia: Classico > Premium > pagos > gratis.
+    const availableTypes = await ml.getAvailableListingTypes(accessToken, user.ml_user_id, category_id);
+    const availableIds = availableTypes.map(t => t.id || t.listing_type_id).filter(Boolean);
+    if (availableIds.length === 0) {
+      return res.status(400).json({
+        error: 'Esta categoria não aceita anúncios para a sua conta. Verifique se escolheu uma subcategoria final e se seu cadastro de vendedor no Mercado Livre está completo.',
+      });
     }
+    const PREFERENCE = ['gold_special', 'gold_pro', 'gold', 'silver', 'bronze', 'free'];
+    const listingType = PREFERENCE.find(p => availableIds.includes(p)) || availableIds[0];
+    console.error('listing_type escolhido:', listingType, 'de', JSON.stringify(availableIds));
 
     let pictures = [];
     for (const img of images) {
@@ -102,7 +110,7 @@ router.post('/', authMiddleware, async (req, res) => {
       currency_id: 'BRL',
       available_quantity: Number(available_quantity),
       buying_mode: 'buy_it_now',
-      listing_type_id: LISTING_TYPE,
+      listing_type_id: listingType,
       condition: 'new',
       pictures,
       shipping,
