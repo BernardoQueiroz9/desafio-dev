@@ -235,7 +235,25 @@ router.get('/debug/listing-types', authMiddleware, async (req, res) => {
         results[id] = { error: e.response?.data?.message || e.message };
       }
     }
-    res.json({ ml_user_id: user.ml_user_id, results });
+
+    // Perfil do ML: status.list.allow diz se a conta pode anunciar, e os codes
+    // dizem o motivo quando nao pode (ex.: documentacao/cartao pendente).
+    let profile = null;
+    try {
+      const p = await ml.getUser(token);
+      profile = {
+        site_status: p.status?.site_status,
+        list: p.status?.list,
+        sell: p.status?.sell,
+        mercadopago_account_type: p.status?.mercadopago_account_type,
+        tags: p.tags,
+        seller_reputation_level: p.seller_reputation?.level_id,
+      };
+    } catch (e) {
+      profile = { error: e.response?.data?.message || e.message };
+    }
+
+    res.json({ ml_user_id: user.ml_user_id, profile, results });
   } catch (err) {
     if (handleReauth(res, err)) return;
     res.status(500).json({ error: err.message });
