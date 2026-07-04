@@ -50,15 +50,17 @@ router.post('/', authMiddleware, async (req, res) => {
     // teste ou certas categorias). Preferencia: Classico > Premium > pagos > gratis.
     const availableTypes = await ml.getAvailableListingTypes(accessToken, user.ml_user_id, category_id);
     const availableIds = availableTypes.map(t => t.id || t.listing_type_id).filter(Boolean);
-    if (availableIds.length === 0) {
-      return res.status(400).json({
-        error: 'Esta categoria não aceita anúncios para a sua conta. Verifique se escolheu uma subcategoria final e se seu cadastro de vendedor no Mercado Livre está completo.',
-        _debug: { category_id, ml_user_id: user.ml_user_id, raw: availableTypes },
-      });
-    }
     const PREFERENCE = ['gold_special', 'gold_pro', 'gold', 'silver', 'bronze', 'free'];
-    const listingType = PREFERENCE.find(p => availableIds.includes(p)) || availableIds[0];
-    console.error('listing_type escolhido:', listingType, 'de', JSON.stringify(availableIds));
+    let listingType = PREFERENCE.find(p => availableIds.includes(p)) || availableIds[0];
+    if (!listingType) {
+      // available_listing_types veio vazio (limitacao do endpoint/escopo). NAO
+      // bloqueamos: usamos o Classico como padrao e deixamos o proprio ML
+      // validar/recusar, para que o erro real venha de /items/validate ou /items.
+      listingType = 'gold_special';
+      console.error('available_listing_types vazio para', category_id, '- usando fallback', listingType);
+    } else {
+      console.error('listing_type escolhido:', listingType, 'de', JSON.stringify(availableIds));
+    }
 
     let pictures = [];
     for (const img of images) {
@@ -184,6 +186,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const statusCode = error.response?.status || 500;
     res.status(statusCode >= 400 && statusCode < 500 ? statusCode : 500).json({
       error: userMsg,
+      _debug: { status: error.response?.status, ml: errData },
     });
   }
 });
