@@ -1,10 +1,21 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const ml = require('../services/mercadolibre');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const STATE_TTL = 5 * 60 * 1000;
+
+const stateStore = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of stateStore) {
+    if (now - entry.createdAt > STATE_TTL) stateStore.delete(key);
+  }
+}, 60 * 1000);
 
 function getFrontendUrl(req) {
   return process.env.FRONTEND_URL || req.headers.origin || 'https://desafio-dev-two.vercel.app';
@@ -27,15 +38,22 @@ const authMiddleware = (req, res, next) => {
 
 router.get('/ml/login', (req, res) => {
   const redirectUri = process.env.ML_REDIRECT_URI;
-  const state = Math.random().toString(36).slice(2);
+  const state = crypto.randomBytes(16).toString('hex');
+  stateStore.set(state, { createdAt: Date.now() });
   const url = ml.getAuthUrl(redirectUri, state);
   res.redirect(url);
 });
 
 router.get('/ml/callback', async (req, res) => {
   try {
-    const { code, error } = req.query;
+    const { code, error, state } = req.query;
     const frontendUrl = getFrontendUrl(req);
+
+    const stored = stateStore.get(state);
+    stateStore.delete(state);
+    if (!stored) {
+      return res.redirect(`${frontendUrl}/?error=invalid_state`);
+    }
 
     if (error || !code) {
       return res.redirect(`${frontendUrl}/?error=${error || 'no_code'}`);

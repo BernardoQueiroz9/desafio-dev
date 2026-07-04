@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const { router: authRoutes } = require('./routes/auth');
@@ -22,6 +23,7 @@ app.use(cors({
     cb(null, false);
   },
 }));
+app.use(helmet());
 app.use(express.json({ limit: '50mb' }));
 
 
