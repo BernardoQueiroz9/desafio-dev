@@ -9,10 +9,19 @@ const adsRoutes = require('./routes/ads');
 
 const app = express();
 
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
-};
-app.use(cors(corsOptions));
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://desafio-dev-two.vercel.app',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(null, false);
+  },
+}));
 app.use(express.json({ limit: '50mb' }));
 
 

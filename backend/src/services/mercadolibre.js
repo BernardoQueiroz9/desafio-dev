@@ -172,7 +172,7 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
     });
     const all = Array.isArray(res.data) ? res.data : [];
     return all
-      .filter(attr => attr.value_type)
+      .filter(attr => attr.tags?.required || attr.tags?.catalog_required || attr.tags?.new_required)
       .map(attr => {
         let value_id = null;
         let value_name = '';
@@ -219,6 +219,59 @@ async function getCategory(accessToken, categoryId) {
   });
 }
 
+async function validateItem(accessToken, payload) {
+  return callWithRetry(async () => {
+    const res = await axios.post(`${API_BASE}/items/validate`, payload, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      validateStatus: status => status === 204 || status === 400,
+    });
+    if (res.status === 204) return null;
+    return res.data;
+  });
+}
+
+async function getCategorySaleTerms(accessToken, categoryId) {
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}/attributes`, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+    });
+    const all = Array.isArray(res.data) ? res.data : [];
+    return all
+      .filter(attr => (attr.tags?.required || attr.tags?.catalog_required) && attr.id.includes('WARRANTY'))
+      .map(attr => ({
+        id: attr.id,
+        value_name: attr.allowed_values?.[0]?.name || attr.values?.[0]?.name || '90 días',
+      }));
+  });
+}
+
+const SELLER_ERROR_MAP = {
+  'seller.unable_to_list': {
+    address_pending: 'Seu cadastro de vendedor no Mercado Livre está incompleto. Acesse sua conta no ML em "Vender" e complete seu endereço, telefone e documentos. Depois crie um anúncio manualmente no site do ML para liberar sua conta.',
+    identification_pending: 'Seu documento está pendente de verificação no Mercado Livre. Acesse sua conta e complete a verificação de identidade.',
+    rejected_by_regulations: 'Sua conta foi rejeitada pelas políticas do Mercado Livre. Entre em contato com o suporte do ML.',
+    address_empty_city: 'Sua cidade não está preenchida no cadastro do Mercado Livre. Complete seu endereço nas configurações da conta.',
+    address_empty_state: 'Seu estado não está preenchido no cadastro do Mercado Livre. Complete seu endereço nas configurações da conta.',
+    phone_pending: 'Seu telefone não está confirmado no Mercado Livre. Adicione um telefone válido nas configurações da conta.',
+  },
+};
+
+function mapMlError(errData) {
+  const errorCode = errData.error;
+  const causes = (errData.cause || []).map(c => typeof c === 'string' ? c : c.code || c.message || '');
+  const errorMap = SELLER_ERROR_MAP[errorCode];
+  if (errorMap) {
+    for (const cause of causes) {
+      if (errorMap[cause]) return errorMap[cause];
+    }
+  }
+  const causeStr = causes.filter(Boolean).join('; ');
+  if (causeStr) {
+    return (errData.message || 'Erro do Mercado Livre') + ' (' + causeStr + ')';
+  }
+  return errData.message || 'Erro desconhecido do Mercado Livre';
+}
+
 async function setDescription(accessToken, itemId, plainText) {
   return callWithRetry(async () => {
     const res = await axios.post(
@@ -245,4 +298,7 @@ module.exports = {
   getCategoryRequiredAttributes,
   checkAvailableListingType,
   getCategory,
+  validateItem,
+  getCategorySaleTerms,
+  mapMlError,
 };

@@ -5,7 +5,10 @@ const ml = require('../services/mercadolibre');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+function getFrontendUrl(req) {
+  return process.env.FRONTEND_URL || req.headers.origin || 'http://localhost:5173';
+}
 
 const authMiddleware = (req, res, next) => {
   const header = req.headers.authorization;
@@ -32,8 +35,10 @@ router.get('/ml/login', (req, res) => {
 router.get('/ml/callback', async (req, res) => {
   try {
     const { code, error } = req.query;
+    const frontendUrl = getFrontendUrl(req);
+
     if (error || !code) {
-      return res.redirect(`${FRONTEND_URL}/?error=${error || 'no_code'}`);
+      return res.redirect(`${frontendUrl}/?error=${error || 'no_code'}`);
     }
 
     const redirectUri = process.env.ML_REDIRECT_URI;
@@ -73,12 +78,12 @@ router.get('/ml/callback', async (req, res) => {
     );
 
     res.redirect(
-      `${FRONTEND_URL}/?token=${jwtToken}&userId=${user._id}&userName=${encodeURIComponent(name)}`
+      `${frontendUrl}/?token=${jwtToken}&userId=${user._id}&userName=${encodeURIComponent(name)}`
     );
   } catch (err) {
     const msg = err.response?.data?.error || err.response?.data?.message || err.message;
     console.error('ML callback error:', msg);
-    res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
+    res.redirect(`${getFrontendUrl(req)}/?error=${encodeURIComponent(msg)}`);
   }
 });
 

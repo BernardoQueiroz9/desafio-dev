@@ -59,7 +59,7 @@ function Login() {
   }, [location.search, navigate]);
 
   const handleLogin = () => {
-    window.location.href = `${API_URL.replace('/api', '')}/api/auth/ml/login`;
+    window.location.href = `${API_URL}/auth/ml/login`;
   };
 
   return (

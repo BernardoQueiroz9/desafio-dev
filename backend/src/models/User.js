@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const ml = require('../services/mercadolibre');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -12,6 +13,20 @@ const UserSchema = new mongoose.Schema({
 
 UserSchema.methods.isTokenExpired = function () {
   return Date.now() >= this.ml_token_expires_at.getTime();
+};
+
+UserSchema.methods.getValidToken = async function () {
+  if (this.isTokenExpired()) {
+    if (!this.ml_refresh_token) {
+      throw new Error('Token expirado e sem refresh_token. Faça login novamente.');
+    }
+    const data = await ml.refreshAccessToken(this.ml_refresh_token);
+    this.ml_access_token = data.access_token;
+    this.ml_refresh_token = data.refresh_token;
+    this.ml_token_expires_at = new Date(Date.now() + data.expires_in * 1000);
+    await this.save();
+  }
+  return this.ml_access_token;
 };
 
 module.exports = mongoose.model('User', UserSchema);

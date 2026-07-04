@@ -8,26 +8,6 @@ const router = express.Router();
 const ML_SITE_ID = process.env.ML_SITE_ID || 'MLB';
 const LISTING_TYPE = 'gold_special';
 
-const DEFAULT_ATTRIBUTES = {
-  BRAND: 'Genérico',
-  VIDEO_GAME_TITLE: 'Jogo Padrão',
-  MODEL: 'Básico',
-};
-
-async function getValidToken(user) {
-  if (user.isTokenExpired()) {
-    if (!user.ml_refresh_token) {
-      throw new Error('Token expirado e sem refresh_token. Faça login novamente.');
-    }
-    const data = await ml.refreshAccessToken(user.ml_refresh_token);
-    user.ml_access_token = data.access_token;
-    user.ml_refresh_token = data.refresh_token;
-    user.ml_token_expires_at = new Date(Date.now() + data.expires_in * 1000);
-    await user.save();
-  }
-  return user.ml_access_token;
-}
-
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full } = req.body;
@@ -51,7 +31,12 @@ router.post('/', authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
 
-    const accessToken = await getValidToken(user);
+    const accessToken = await user.getValidToken();
+
+    const availableType = await ml.checkAvailableListingType(accessToken, user.ml_user_id, category_id, LISTING_TYPE);
+    if (!availableType) {
+      return res.status(400).json({ error: 'O tipo de anúncio gold_special não está disponível para esta categoria ou sua conta. Tente uma categoria diferente.' });
+    }
 
     let pictures = [];
     for (const img of images) {
@@ -77,17 +62,27 @@ router.post('/', authMiddleware, async (req, res) => {
           if (attr.id === 'ITEM_CONDITION') continue;
           if (attr.value_type === 'list' && attr._picked_value_id) {
             itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
-          } else {
-            const val = attr._picked_value || DEFAULT_ATTRIBUTES[attr.id] || '';
-            if (val) {
-              itemAttributes.push({ id: attr.id, value_name: val });
-            }
+          } else if (attr._picked_value) {
+            itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
           }
         }
       } catch (attrErr) {
         console.error('Falha ao buscar atributos da categoria:', attrErr.message);
       }
     }
+
+    let saleTerms = [];
+    try {
+      saleTerms = await ml.getCategorySaleTerms(accessToken, category_id);
+    } catch (saleErr) {
+      console.error('Falha ao buscar sale_terms:', saleErr.message);
+    }
+
+    const shipping = {
+      mode: free_shipping ? 'me2' : 'not_specified',
+      free_shipping: !!free_shipping,
+      local_pick_up: false,
+    };
 
     const payload = {
       site_id: ML_SITE_ID,
@@ -100,10 +95,23 @@ router.post('/', authMiddleware, async (req, res) => {
       listing_type_id: LISTING_TYPE,
       condition: 'new',
       pictures,
+      shipping,
+      seller_custom_field: `app_${user._id}_${Date.now()}`,
     };
 
     if (itemAttributes.length > 0) {
       payload.attributes = itemAttributes;
+    }
+    if (saleTerms.length > 0) {
+      payload.sale_terms = saleTerms;
+    }
+
+    const validationErrors = await ml.validateItem(accessToken, payload);
+    if (validationErrors) {
+      return res.status(400).json({
+        error: 'Validação do Mercado Livre falhou',
+        details: validationErrors,
+      });
     }
 
     const mlItem = await ml.createItem(accessToken, payload);
@@ -131,66 +139,9 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (error) {
     const errData = error.response?.data || {};
     console.error('Erro ao criar anuncio:', JSON.stringify(errData, null, 2));
-    const cause = (errData.cause || []).map(c => typeof c === 'string' ? c : (c.message || ''));
-    if (cause.length) {
-      cause.forEach((c, i) => console.error(`  cause[${i}]:`, c));
-    }
-    let userMsg = errData.message || error.message || 'Erro ao criar anuncio';
-    if (cause.length) {
-      userMsg += ' (' + cause.join('; ') + ')';
-    }
-    if (cause.some(c => c.includes('me1') || c.includes('mercadoenvios'))) {
-      userMsg = 'Sua conta não possui Mercado Envios (me1). Essa categoria exige frete integrado. Tente uma categoria diferente, como Roupas (MLB1430) ou Brinquedos (MLB1136).';
-    }
+    const userMsg = ml.mapMlError(errData);
     res.status(500).json({
       error: userMsg,
-      details: errData,
-    });
-  }
-});
-
-router.post('/test-create', authMiddleware, async (req, res) => {
-  try {
-    const { title, price, available_quantity, category_id } = req.body;
-    if (!title || !price || !available_quantity || !category_id) {
-      return res.status(400).json({ error: 'title, price, available_quantity e category_id sao obrigatorios' });
-    }
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
-
-    const accessToken = await getValidToken(user);
-
-    const payload = {
-      site_id: ML_SITE_ID,
-      title,
-      category_id,
-      price: Number(price),
-      currency_id: 'BRL',
-      available_quantity: Number(available_quantity),
-      buying_mode: 'buy_it_now',
-      listing_type_id: 'gold_special',
-    };
-
-    console.log('Test-create payload:', JSON.stringify(payload, null, 2));
-    const mlItem = await ml.createItem(accessToken, payload);
-
-    const newAd = new Ad({
-      ml_id: mlItem.id,
-      title, price, available_quantity, category_id,
-      user: req.userId,
-    });
-    await newAd.save();
-
-    res.status(201).json({ message: 'Anuncio criado com sucesso!', ad: newAd, mlItem });
-  } catch (error) {
-    const errData = error.response?.data || {};
-    console.error('Erro no test-create:', JSON.stringify(errData, null, 2));
-    const cause = errData.cause || [];
-    if (cause.length) {
-      cause.forEach((c, i) => console.error(`  cause[${i}]:`, JSON.stringify(c)));
-    }
-    res.status(500).json({
-      error: errData.message || error.message || 'Erro ao criar anuncio de teste',
       details: errData,
     });
   }
@@ -231,7 +182,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       try {
         const user = await User.findById(req.userId);
         if (user) {
-          const token = await getValidToken(user);
+          const token = await user.getValidToken();
           const catData = await ml.getCategory(token, ad.category_id);
           ad.category_name = catData.name || '';
         }
@@ -248,7 +199,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
     const ads = await Ad.find({ user: req.userId });
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
-    const accessToken = await getValidToken(user);
+    const accessToken = await user.getValidToken();
 
     const syncResults = await Promise.all(ads.map(async (ad) => {
       if (!ad.ml_id) return null;
@@ -294,13 +245,20 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
 
-    const accessToken = await getValidToken(user);
+    const accessToken = await user.getValidToken();
 
-    await ml.updateItem(accessToken, ad.ml_id, {
+    const updatePayload = {
       title,
       price: Number(price),
       available_quantity: Number(available_quantity),
-    });
+    };
+    if (free_shipping !== undefined) {
+      updatePayload.shipping = {
+        mode: free_shipping ? 'me2' : 'not_specified',
+        free_shipping: !!free_shipping,
+      };
+    }
+    await ml.updateItem(accessToken, ad.ml_id, updatePayload);
 
     if (description) {
       try {
@@ -334,6 +292,19 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const ad = await Ad.findOne({ _id: req.params.id, user: req.userId });
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
+
+    if (ad.ml_id) {
+      try {
+        const user = await User.findById(req.userId);
+        if (user) {
+          const accessToken = await user.getValidToken();
+          await ml.updateItem(accessToken, ad.ml_id, { status: 'closed' });
+        }
+      } catch (mlErr) {
+        console.error('Erro ao fechar anúncio no ML:', mlErr.message);
+      }
+    }
+
     await Ad.deleteOne({ _id: req.params.id });
     res.json({ message: 'Anuncio removido' });
   } catch (error) {
