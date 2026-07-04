@@ -53,6 +53,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (availableIds.length === 0) {
       return res.status(400).json({
         error: 'Esta categoria não aceita anúncios para a sua conta. Verifique se escolheu uma subcategoria final e se seu cadastro de vendedor no Mercado Livre está completo.',
+        _debug: { category_id, ml_user_id: user.ml_user_id, raw: availableTypes },
       });
     }
     const PREFERENCE = ['gold_special', 'gold_pro', 'gold', 'silver', 'bronze', 'free'];

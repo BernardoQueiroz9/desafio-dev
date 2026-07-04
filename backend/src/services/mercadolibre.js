@@ -213,15 +213,16 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
 }
 
 // Retorna a lista bruta de tipos de anuncio disponiveis para o usuario+categoria.
+// O parametro correto da API do ML e `category_id` (nao `category`).
 async function getAvailableListingTypes(accessToken, userId, categoryId) {
   const res = await callWithRetry(async () => {
     return await axios.get(
       `${API_BASE}/users/${userId}/available_listing_types`,
-      { params: { category: categoryId }, headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` } }
+      { params: { category_id: categoryId }, headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` } }
     );
   });
   const types = Array.isArray(res.data) ? res.data : (res.data.available_listing_types || []);
-  console.error('available_listing_types response:', JSON.stringify(types).slice(0, 800));
+  console.error('available_listing_types response:', JSON.stringify(res.data).slice(0, 1000));
   return types;
 }
 
