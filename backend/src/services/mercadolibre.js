@@ -25,24 +25,29 @@ async function callWithRetry(fn, retries = 3) {
   }
 }
 
-function getAuthUrl(redirectUri, state) {
+function getAuthUrl(redirectUri, state, codeChallenge) {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: process.env.ML_CLIENT_ID,
     redirect_uri: redirectUri,
-    scope: 'read write offline_access',
+    scope: 'offline_access read write',
   });
   if (state) params.set('state', state);
+  if (codeChallenge) {
+    params.set('code_challenge', codeChallenge);
+    params.set('code_challenge_method', 'S256');
+  }
   return `${AUTH_BASE}/authorization?${params.toString()}`;
 }
 
-async function exchangeCode(code, redirectUri) {
+async function exchangeCode(code, redirectUri, codeVerifier) {
   const params = new URLSearchParams();
   params.append('grant_type', 'authorization_code');
   params.append('client_id', process.env.ML_CLIENT_ID);
   params.append('client_secret', process.env.ML_CLIENT_SECRET);
   params.append('code', code);
   params.append('redirect_uri', redirectUri);
+  if (codeVerifier) params.append('code_verifier', codeVerifier);
 
   return callWithRetry(async () => {
     const res = await axios.post(`${API_BASE}/oauth/token`, params.toString(), {

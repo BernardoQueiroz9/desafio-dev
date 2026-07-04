@@ -39,8 +39,12 @@ const authMiddleware = (req, res, next) => {
 router.get('/ml/login', (req, res) => {
   const redirectUri = process.env.ML_REDIRECT_URI;
   const state = crypto.randomBytes(16).toString('hex');
-  stateStore.set(state, { createdAt: Date.now() });
-  const url = ml.getAuthUrl(redirectUri, state);
+  const codeVerifier = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.createHash('sha256').update(codeVerifier).digest();
+  const codeChallenge = hash.toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  stateStore.set(state, { createdAt: Date.now(), codeVerifier });
+  const url = ml.getAuthUrl(redirectUri, state, codeChallenge);
   res.redirect(url);
 });
 
@@ -59,8 +63,9 @@ router.get('/ml/callback', async (req, res) => {
       return res.redirect(`${frontendUrl}/?error=${error || 'no_code'}`);
     }
 
+    const codeVerifier = stored.codeVerifier;
     const redirectUri = process.env.ML_REDIRECT_URI;
-    const tokenData = await ml.exchangeCode(code, redirectUri);
+    const tokenData = await ml.exchangeCode(code, redirectUri, codeVerifier);
     const { access_token, refresh_token, user_id, expires_in } = tokenData;
 
     const mlUser = await ml.getUser(access_token);
