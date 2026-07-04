@@ -7,7 +7,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
 function getFrontendUrl(req) {
-  return process.env.FRONTEND_URL || req.headers.origin || 'http://localhost:5173';
+  return process.env.FRONTEND_URL || req.headers.origin || 'https://desafio-dev-two.vercel.app';
 }
 
 const authMiddleware = (req, res, next) => {
