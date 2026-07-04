@@ -167,12 +167,8 @@ router.post('/ml/test-user', authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     const token = await user.getValidToken();
     const testUser = await ml.createTestUser(token, config.ml.siteId);
-    res.json({
-      id: testUser.id,
-      nickname: testUser.nickname,
-      password: testUser.password,
-      site_status: testUser.site_status,
-    });
+    // Retorna o objeto completo: o login do ML usa o e-mail gerado do test user.
+    res.json(testUser);
   } catch (err) {
     if (handleReauth(res, err)) return;
     const msg = err.response?.data?.message || err.response?.data?.error || err.message;
