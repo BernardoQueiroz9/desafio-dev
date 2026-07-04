@@ -21,12 +21,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Quando a sessao com o ML expira e nao pode ser renovada, o backend responde
-// 401 { code: 'ML_REAUTH_REQUIRED' }. Limpamos o storage e voltamos ao login.
+// Qualquer 401 significa sessao invalida (token do app expirado/invalido, ou
+// reautorizacao do ML necessaria). Limpamos o storage e voltamos ao login,
+// evitando que o dashboard fique preso mostrando "nao foi possivel carregar".
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && err.response?.data?.code === 'ML_REAUTH_REQUIRED') {
+    if (err.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       localStorage.removeItem('userName');
