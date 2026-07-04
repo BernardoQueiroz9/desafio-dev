@@ -12,7 +12,7 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full } = req.body;
 
-    if (available_quantity < 1) {
+    if (available_quantity == null || available_quantity < 1 || isNaN(Number(available_quantity))) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
     }
     if (!category_id) {
@@ -27,6 +27,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title) {
       return res.status(400).json({ error: 'Titulo é obrigatorio' });
     }
+    if (title.length > 60) {
+      return res.status(400).json({ error: 'Titulo deve ter no maximo 60 caracteres' });
+    }
 
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
@@ -40,34 +43,31 @@ router.post('/', authMiddleware, async (req, res) => {
 
     let pictures = [];
     for (const img of images) {
-      try {
-        const picData = await ml.uploadPicture(accessToken, img);
-        const pictureUrl = picData?.variants?.[0]?.url || picData?.secure_url || picData?.url;
-        if (pictureUrl) {
-          pictures.push({ source: pictureUrl });
-        }
-      } catch (uploadErr) {
-        console.error('Upload de imagem falhou:', uploadErr.message);
+      const picData = await ml.uploadPicture(accessToken, img);
+      if (picData && picData.source) {
+        pictures.push(picData);
       }
     }
     if (pictures.length === 0) {
-      pictures = [{ source: 'https://placehold.co/400x400/FFF/EEE?text=Produto' }];
+      return res.status(400).json({ error: 'Nenhuma imagem pôde ser enviada ao Mercado Livre. Verifique o formato e tente novamente.' });
+    }
+    if (pictures.length !== images.length) {
+      return res.status(400).json({ error: `${pictures.length} de ${images.length} imagens foram enviadas. Todas as imagens precisam ser válidas.` });
     }
 
     let itemAttributes = attributes || [];
     if (itemAttributes.length === 0) {
-      try {
-        const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
-        for (const attr of reqAttrs) {
-          if (attr.id === 'ITEM_CONDITION') continue;
-          if (attr.value_type === 'list' && attr._picked_value_id) {
-            itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
-          } else if (attr._picked_value) {
-            itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
-          }
+      const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
+      for (const attr of reqAttrs) {
+        if (attr.id === 'ITEM_CONDITION') continue;
+        if (attr.value_type === 'list' && attr._picked_value_id) {
+          itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
+        } else if (attr._picked_value) {
+          itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
         }
-      } catch (attrErr) {
-        console.error('Falha ao buscar atributos da categoria:', attrErr.message);
+      }
+      if (itemAttributes.length === 0) {
+        return res.status(400).json({ error: 'Não foi possível determinar os atributos obrigatórios para esta categoria.' });
       }
     }
 
@@ -84,7 +84,7 @@ router.post('/', authMiddleware, async (req, res) => {
       local_pick_up: false,
     };
 
-    const payload = {
+    const basePayload = {
       site_id: ML_SITE_ID,
       title,
       category_id,
@@ -96,17 +96,16 @@ router.post('/', authMiddleware, async (req, res) => {
       condition: 'new',
       pictures,
       shipping,
-      seller_custom_field: `app_${user._id}_${Date.now()}`,
     };
 
     if (itemAttributes.length > 0) {
-      payload.attributes = itemAttributes;
+      basePayload.attributes = itemAttributes;
     }
     if (saleTerms.length > 0) {
-      payload.sale_terms = saleTerms;
+      basePayload.sale_terms = saleTerms;
     }
 
-    const validationErrors = await ml.validateItem(accessToken, payload);
+    const validationErrors = await ml.validateItem(accessToken, basePayload);
     if (validationErrors) {
       return res.status(400).json({
         error: 'Validação do Mercado Livre falhou',
@@ -114,10 +113,20 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    const mlItem = await ml.createItem(accessToken, payload);
+    const createPayload = {
+      ...basePayload,
+      seller_custom_field: `app_${user._id}_${Date.now()}`,
+    };
+    const mlItem = await ml.createItem(accessToken, createPayload);
 
+    let descriptionError = null;
     if (description) {
-      try { await ml.setDescription(accessToken, mlItem.id, description); } catch {}
+      try {
+        await ml.setDescription(accessToken, mlItem.id, description);
+      } catch (descErr) {
+        descriptionError = descErr.message;
+        console.error('Erro ao definir descricao no ML:', descErr.message);
+      }
     }
 
     const savedImages = pictures.map(p => p.source);
@@ -135,14 +144,20 @@ router.post('/', authMiddleware, async (req, res) => {
     });
     await newAd.save();
 
-    res.status(201).json(newAd);
+    const response = newAd.toObject();
+    if (descriptionError) {
+      response.description_warning = 'Anúncio criado, mas a descrição não pôde ser salva no Mercado Livre: ' + descriptionError;
+    }
+    res.status(201).json(response);
   } catch (error) {
     const errData = error.response?.data || {};
-    console.error('Erro ao criar anuncio:', JSON.stringify(errData, null, 2));
+    const errMsg = error.response ? JSON.stringify(errData, null, 2) : error.message;
+    console.error('Erro ao criar anuncio:', errMsg);
     const userMsg = ml.mapMlError(errData);
-    res.status(500).json({
+    const statusCode = error.response?.status || 500;
+    res.status(statusCode >= 400 && statusCode < 500 ? statusCode : 500).json({
       error: userMsg,
-      details: errData,
+      details: Object.keys(errData).length > 0 ? errData : undefined,
     });
   }
 });
@@ -238,7 +253,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     if (!ad) return res.status(404).json({ error: 'Anuncio nao encontrado' });
 
-    if (available_quantity < 1) {
+    if (available_quantity == null || available_quantity < 1 || isNaN(Number(available_quantity))) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
     }
 

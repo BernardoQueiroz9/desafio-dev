@@ -110,9 +110,9 @@ async function uploadPicture(accessToken, imageDataUrl) {
   const buffer = Buffer.from(matches[2], 'base64');
   const ext = matches[1].split('/')[1] || 'jpg';
   const tmpFile = path.join(os.tmpdir(), `meli_${Date.now()}.${ext}`);
-  fs.writeFileSync(tmpFile, buffer);
 
   try {
+    fs.writeFileSync(tmpFile, buffer);
     return await callWithRetry(async () => {
       const form = new FormData();
       form.append('file', fs.createReadStream(tmpFile));
@@ -130,10 +130,16 @@ async function uploadPicture(accessToken, imageDataUrl) {
       });
 
       const data = res.data;
-      if (data && data.id) {
-        data.secure_url = `https://http2.mlstatic.com/storage/pictures/${data.id}`;
+      if (data && data.variants?.[0]?.url) {
+        return { source: data.variants[0].url };
       }
-      return data;
+      if (data && data.secure_url) {
+        return { source: data.secure_url };
+      }
+      if (data && data.url) {
+        return { source: data.url };
+      }
+      throw new Error('Resposta da API de imagens sem URL');
     });
   } catch (err) {
     console.error('uploadPicture error:', err.response?.data || err.message);
@@ -228,9 +234,9 @@ async function validateItem(accessToken, payload) {
   return callWithRetry(async () => {
     const res = await axios.post(`${API_BASE}/items/validate`, payload, {
       headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      validateStatus: status => status === 204 || status === 400,
+      validateStatus: status => [200, 204, 400, 422].includes(status),
     });
-    if (res.status === 204) return null;
+    if (res.status === 200 || res.status === 204) return null;
     return res.data;
   });
 }
@@ -262,6 +268,7 @@ const SELLER_ERROR_MAP = {
 };
 
 function mapMlError(errData) {
+  if (!errData || Object.keys(errData).length === 0) return 'Erro de conexão com o Mercado Livre. Verifique sua rede e tente novamente.';
   const errorCode = errData.error;
   const causes = (errData.cause || []).map(c => typeof c === 'string' ? c : c.code || c.message || '');
   const errorMap = SELLER_ERROR_MAP[errorCode];
