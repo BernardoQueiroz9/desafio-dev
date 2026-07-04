@@ -215,6 +215,33 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Diagnostico: mostra quais tipos de anuncio a conta do usuario tem disponiveis
+// em cada categoria testada. Ajuda a distinguir categoria restrita de problema
+// de conta. Ex.: GET /api/ads/debug/listing-types?ids=MLB1055,MLB437616
+router.get('/debug/listing-types', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const token = await user.getValidToken();
+    const ids = req.query.ids
+      ? String(req.query.ids).split(',').map(s => s.trim()).filter(Boolean)
+      : ['MLB1055', 'MLB437616', 'MLB1227', 'MLB455868'];
+    const results = {};
+    for (const id of ids) {
+      try {
+        const types = await ml.getAvailableListingTypes(token, user.ml_user_id, id);
+        results[id] = types.map(t => t.id || t.listing_type_id).filter(Boolean);
+      } catch (e) {
+        results[id] = { error: e.response?.data?.message || e.message };
+      }
+    }
+    res.json({ ml_user_id: user.ml_user_id, results });
+  } catch (err) {
+    if (handleReauth(res, err)) return;
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const ad = await Ad.findById(req.params.id).populate('user', 'name ml_nickname');
