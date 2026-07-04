@@ -6,6 +6,7 @@ const User = require('../models/User');
 const OAuthState = require('../models/OAuthState');
 const AuthCode = require('../models/AuthCode');
 const ml = require('../services/mercadolibre');
+const { handleReauth } = require('../services/errors');
 const router = express.Router();
 
 const JWT_SECRET = config.jwtSecret;
@@ -155,6 +156,28 @@ router.get('/me', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar usuário' });
+  }
+});
+
+// Cria um usuario de teste do ML (habilitado a vender) usando o token do dono
+// da aplicacao (usuario logado). Retorna nickname + senha para login de teste.
+router.post('/ml/test-user', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const token = await user.getValidToken();
+    const testUser = await ml.createTestUser(token, config.ml.siteId);
+    res.json({
+      id: testUser.id,
+      nickname: testUser.nickname,
+      password: testUser.password,
+      site_status: testUser.site_status,
+    });
+  } catch (err) {
+    if (handleReauth(res, err)) return;
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+    console.error('Erro ao criar test user:', JSON.stringify(err.response?.data || msg));
+    res.status(500).json({ error: 'Não foi possível criar o usuário de teste: ' + msg });
   }
 });
 

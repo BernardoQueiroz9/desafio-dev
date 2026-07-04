@@ -315,6 +315,19 @@ function mapMlError(errData) {
   return errData.message || 'Não foi possível publicar o anúncio no Mercado Livre. Revise os dados e tente novamente.';
 }
 
+// Cria um usuario de teste do ML (habilitado a vender) usando o token do dono
+// da aplicacao. Usado para demonstrar a publicacao sem expor a conta real.
+async function createTestUser(accessToken, siteId) {
+  return callWithRetry(async () => {
+    const res = await axios.post(
+      `${API_BASE}/users/test_user`,
+      { site_id: siteId },
+      { headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    );
+    return res.data;
+  });
+}
+
 async function setDescription(accessToken, itemId, plainText) {
   return callWithRetry(async () => {
     const res = await axios.post(
@@ -344,5 +357,6 @@ module.exports = {
   getCategory,
   validateItem,
   getCategorySaleTerms,
+  createTestUser,
   mapMlError,
 };
