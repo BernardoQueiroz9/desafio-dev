@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { api } from './api';
+import { api, getApiUrl } from './api';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
 import Sidebar from './components/Sidebar';
@@ -11,7 +11,7 @@ import ProductDetailPage from './components/ProductDetailPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorScreen from './components/ErrorScreen';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = getApiUrl();
 
 const unmaskPrice = (masked) => {
   if (!masked) return '';
