@@ -35,6 +35,7 @@ Sistema full-stack para criação, listagem, edição e sincronização de anún
 
 | Variável | Descrição | Padrão |
 |---|---|---|
+| `NODE_ENV` | Em `production`, ativa o fail-fast: o servidor não sobe sem os segredos obrigatórios | (vazio) |
 | `PORT` | Porta do servidor | `3000` |
 | `MONGO_URI` | String de conexão MongoDB Atlas | (usa mongodb-memory-server) |
 | `FRONTEND_URL` | Origem permitida no CORS | `http://localhost:5173` |
@@ -74,11 +75,20 @@ O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3
 
 ## Fluxo de autenticação
 
+O login usa OAuth 2.0 com PKCE (S256). O token de sessão (JWT) **nunca** trafega na URL: o backend entrega ao frontend um código de troca de uso único, que é trocado pelo JWT numa chamada separada.
+
 1. O usuario clica em "Entrar com Mercado Livre" na tela de login
-2. E redirecionado para o Mercado Livre para autorizar o aplicativo
-3. Apos autorizar, e redirecionado de volta para a aplicacao
-4. O backend troca o codigo de autorizacao por um access token
-5. Um token JWT e gerado e armazenado no frontend para as requisicoes
+2. O backend gera `state` + verificador PKCE e os persiste no MongoDB (índice TTL ~5min) — assim o login sobrevive a reinícios/múltiplas instâncias
+3. O usuario autoriza no Mercado Livre e é redirecionado de volta ao callback
+4. O backend valida o `state` (uso único), troca o código por tokens do ML e faz upsert do usuario
+5. O backend redireciona o frontend com `?code=<opaco>` (um código de troca de uso único, TTL ~60s) — **sem** o JWT na URL
+6. O frontend chama `POST /api/auth/exchange { code }` e recebe o JWT no corpo da resposta, guardando-o para as requisicoes seguintes
+
+Quando o token do Mercado Livre expira e não pode ser renovado, a API responde `401 { code: "ML_REAUTH_REQUIRED" }` e o frontend redireciona o usuario ao login novamente.
+
+### Pré-requisitos de conta de vendedor no Mercado Livre
+
+Para publicar anúncios, a conta precisa estar habilitada como vendedora no ML: endereço, telefone e documentos completos, e (em muitos casos) ao menos um anúncio criado manualmente no site do ML para liberar a conta. Contas incompletas recebem uma mensagem específica orientando o que completar.
 
 ## Funcionalidades
 

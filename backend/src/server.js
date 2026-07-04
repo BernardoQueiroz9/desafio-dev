@@ -1,41 +1,12 @@
-require('dotenv').config();
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const config = require('./config/env');
+const { createApp } = require('./app');
 
-const { router: authRoutes } = require('./routes/auth');
-const adsRoutes = require('./routes/ads');
+const app = createApp();
 
-const app = express();
-
-const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:4173',
-  'https://desafio-dev-two.vercel.app',
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(null, false);
-  },
-}));
-app.use(helmet());
-app.use(express.json({ limit: '50mb' }));
-
-
-const categoriesRoutes = require('./routes/categories');
-app.use('/api/auth', authRoutes);
-app.use('/api/ads', adsRoutes);
-app.use('/api/categories', categoriesRoutes);
-
-const PORT = process.env.PORT || 3000;
-
-async function start() {
-  let uri = process.env.MONGO_URI;
+async function connectDb() {
+  let uri = config.mongoUri;
 
   if (uri) {
     if (!uri.includes('%24')) {
@@ -48,32 +19,25 @@ async function start() {
     try {
       await mongoose.connect(uri);
       console.log('MongoDB Atlas Conectado');
+      return;
     } catch (err) {
       console.log('Atlas indisponivel (' + err.message + '), usando MongoDB local...');
-      uri = null;
     }
   }
 
-  if (!uri) {
-    const mongoServer = await MongoMemoryServer.create();
-    uri = mongoServer.getUri();
-    await mongoose.connect(uri);
-    console.log('MongoDB Local (em memoria) Conectado');
-  }
+  const mongoServer = await MongoMemoryServer.create();
+  await mongoose.connect(mongoServer.getUri());
+  console.log('MongoDB Local (em memoria) Conectado');
+}
 
-  try {
-    await mongoose.connection.collection('users').dropIndex('email_1');
-    console.log('Índice email_1 removido da coleção users');
-  } catch {
-    // índice já não existe, segue o jogo
-  }
-
-  app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+async function start() {
+  await connectDb();
+  app.listen(config.port, () => {
+    console.log(`Servidor rodando na porta ${config.port}`);
   });
 }
 
-start().catch(err => {
+start().catch((err) => {
   console.error('Falha ao iniciar:', err);
   process.exit(1);
 });

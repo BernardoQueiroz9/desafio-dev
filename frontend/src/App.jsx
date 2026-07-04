@@ -36,20 +36,34 @@ function Login() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    const userId = params.get('userId');
-    const userName = params.get('userName');
+    const code = params.get('code');
 
-    if (token && userId) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId);
-      if (userName) localStorage.setItem('userName', userName);
-      navigate('/dashboard', { replace: true });
+    // Troca o code de uso unico pelo JWT (token nunca trafega na URL).
+    if (code) {
+      // Limpa o code da URL imediatamente (nao deixa no historico).
+      window.history.replaceState({}, '', '/');
+      api.post('/auth/exchange', { code })
+        .then((res) => {
+          const { token, userId, userName } = res.data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('userId', userId);
+          if (userName) localStorage.setItem('userName', userName);
+          navigate('/dashboard', { replace: true });
+        })
+        .catch(() => {
+          setError('Não foi possível concluir o login. Tente novamente.');
+        });
       return;
     }
 
     if (params.get('error')) {
-      setError(decodeURIComponent(params.get('error')));
+      const raw = decodeURIComponent(params.get('error'));
+      const friendly = raw === 'invalid_state'
+        ? 'Sessão de login expirada. Tente entrar novamente.'
+        : raw === 'login_failed' || raw === 'login_init_failed'
+          ? 'Falha ao entrar com o Mercado Livre. Tente novamente.'
+          : raw;
+      setError(friendly);
       navigate('/', { replace: true });
     }
 
@@ -302,6 +316,10 @@ function Dashboard() {
       if (formData.id) {
         await api.put(`/ads/${formData.id}`, payload);
       } else {
+        // Chave de idempotencia: evita anuncio duplicado se a requisicao for reenviada.
+        if (!payload.idempotency_key) {
+          payload.idempotency_key = (crypto.randomUUID?.() || String(Date.now()) + Math.random());
+        }
         await api.post('/ads', payload);
       }
       navigate('/dashboard/meus-anuncios');

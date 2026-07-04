@@ -20,3 +20,20 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Quando a sessao com o ML expira e nao pode ser renovada, o backend responde
+// 401 { code: 'ML_REAUTH_REQUIRED' }. Limpamos o storage e voltamos ao login.
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401 && err.response?.data?.code === 'ML_REAUTH_REQUIRED') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userName');
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }
+    return Promise.reject(err);
+  }
+);

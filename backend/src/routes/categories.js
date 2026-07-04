@@ -2,9 +2,11 @@ const express = require('express');
 const ml = require('../services/mercadolibre');
 const User = require('../models/User');
 const { authMiddleware } = require('./auth');
+const { handleReauth } = require('../services/errors');
+const config = require('../config/env');
 const router = express.Router();
 
-const ML_SITE_ID = process.env.ML_SITE_ID || 'MLB';
+const ML_SITE_ID = config.ml.siteId;
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -14,6 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const categories = await ml.getCategories(ML_SITE_ID, accessToken);
     res.json(categories);
   } catch (err) {
+    if (handleReauth(res, err)) return;
     const msg = err.response?.data?.message || err.response?.data?.error || err.message;
     console.error('Erro ao buscar categorias:', msg);
     res.status(500).json({ error: 'Erro ao buscar categorias: ' + msg });
@@ -46,6 +49,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const category = await ml.getCategory(accessToken, req.params.id);
     res.json(category);
   } catch (err) {
+    if (handleReauth(res, err)) return;
     const msg = err.response?.data?.message || err.response?.data?.error || err.message;
     console.error('Erro ao buscar categoria:', msg);
     res.status(500).json({ error: 'Erro ao buscar categoria: ' + msg });
@@ -60,6 +64,7 @@ router.get('/:id/children', authMiddleware, async (req, res) => {
     const children = await ml.getCategoryChildren(req.params.id, accessToken);
     res.json(children);
   } catch (err) {
+    if (handleReauth(res, err)) return;
     const msg = err.response?.data?.message || err.response?.data?.error || err.message;
     console.error('Erro ao buscar subcategorias:', msg);
     res.status(500).json({ error: 'Erro ao buscar subcategorias: ' + msg });

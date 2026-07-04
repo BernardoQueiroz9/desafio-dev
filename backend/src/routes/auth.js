@@ -1,24 +1,21 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const config = require('../config/env');
 const User = require('../models/User');
+const OAuthState = require('../models/OAuthState');
+const AuthCode = require('../models/AuthCode');
 const ml = require('../services/mercadolibre');
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const STATE_TTL = 5 * 60 * 1000;
-
-const stateStore = new Map();
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of stateStore) {
-    if (now - entry.createdAt > STATE_TTL) stateStore.delete(key);
-  }
-}, 60 * 1000);
+const JWT_SECRET = config.jwtSecret;
 
 function getFrontendUrl(req) {
-  return process.env.FRONTEND_URL || req.headers.origin || 'https://desafio-dev-two.vercel.app';
+  return config.frontendUrl || req.headers.origin || 'https://desafio-dev-two.vercel.app';
+}
+
+function signSessionToken(userId, mlUserId) {
+  return jwt.sign({ userId: String(userId), mlUserId: String(mlUserId) }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 const authMiddleware = (req, res, next) => {
@@ -36,26 +33,37 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-router.get('/ml/login', (req, res) => {
-  const redirectUri = process.env.ML_REDIRECT_URI;
-  const state = crypto.randomBytes(16).toString('hex');
-  const codeVerifier = crypto.randomBytes(32).toString('hex');
-  const hash = crypto.createHash('sha256').update(codeVerifier).digest();
-  const codeChallenge = hash.toString('base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  stateStore.set(state, { createdAt: Date.now(), codeVerifier });
-  const url = ml.getAuthUrl(redirectUri, state, codeChallenge);
-  res.redirect(url);
+// Inicia o fluxo OAuth: gera state + PKCE verifier e persiste no Mongo (TTL ~5min).
+router.get('/ml/login', async (req, res) => {
+  try {
+    const redirectUri = config.ml.redirectUri;
+    const state = crypto.randomBytes(16).toString('hex');
+    const codeVerifier = crypto.randomBytes(32).toString('hex');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
+    await OAuthState.create({ _id: state, codeVerifier });
+
+    const url = ml.getAuthUrl(redirectUri, state, codeChallenge);
+    res.redirect(url);
+  } catch (err) {
+    console.error('Erro ao iniciar login ML:', err.message);
+    res.redirect(`${getFrontendUrl(req)}/?error=login_init_failed`);
+  }
 });
 
+// Callback do ML: valida o state (uso unico), troca o code por tokens e
+// entrega ao frontend um `code` opaco de uso unico (nunca o JWT na URL).
 router.get('/ml/callback', async (req, res) => {
+  const frontendUrl = getFrontendUrl(req);
   try {
     const { code, error, state } = req.query;
-    const frontendUrl = getFrontendUrl(req);
 
-    const stored = stateStore.get(state);
-    stateStore.delete(state);
+    const stored = await OAuthState.findOneAndDelete({ _id: state });
     if (!stored) {
+      return res.redirect(`${frontendUrl}/?error=invalid_state`);
+    }
+    // Checagem explicita de idade (nao confiar so no TTL, que varre ~1x/min).
+    if (Date.now() - new Date(stored.createdAt).getTime() > 5 * 60 * 1000) {
       return res.redirect(`${frontendUrl}/?error=invalid_state`);
     }
 
@@ -63,9 +71,8 @@ router.get('/ml/callback', async (req, res) => {
       return res.redirect(`${frontendUrl}/?error=${error || 'no_code'}`);
     }
 
-    const codeVerifier = stored.codeVerifier;
-    const redirectUri = process.env.ML_REDIRECT_URI;
-    const tokenData = await ml.exchangeCode(code, redirectUri, codeVerifier);
+    const redirectUri = config.ml.redirectUri;
+    const tokenData = await ml.exchangeCode(code, redirectUri, stored.codeVerifier);
     const { access_token, refresh_token, user_id, expires_in } = tokenData;
 
     const mlUser = await ml.getUser(access_token);
@@ -94,25 +101,40 @@ router.get('/ml/callback', async (req, res) => {
     }
     await user.save();
 
-    const jwtToken = jwt.sign(
-      { userId: user._id.toString(), mlUserId: String(user_id) },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const authCode = crypto.randomBytes(32).toString('base64url');
+    await AuthCode.create({
+      _id: authCode,
+      userId: user._id,
+      mlUserId: String(user_id),
+      userName: name,
+    });
 
-    res.redirect(
-      `${frontendUrl}/?token=${jwtToken}&userId=${user._id}&userName=${encodeURIComponent(name)}`
-    );
+    res.redirect(`${frontendUrl}/?code=${authCode}`);
   } catch (err) {
     const msg = err.response?.data?.error || err.response?.data?.message || err.message;
     console.error('ML callback error:', msg);
-    res.redirect(`${getFrontendUrl(req)}/?error=${encodeURIComponent(msg)}`);
+    res.redirect(`${frontendUrl}/?error=${encodeURIComponent('login_failed')}`);
   }
 });
 
+// Troca o code de uso unico pelo JWT. O code e apagado na troca (uso unico).
+router.post('/exchange', async (req, res) => {
+  const { code } = req.body || {};
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: 'Código ausente' });
+  }
+  const entry = await AuthCode.findOneAndDelete({ _id: code });
+  if (!entry) {
+    return res.status(410).json({ error: 'Código expirado ou já utilizado. Faça login novamente.' });
+  }
+  const token = signSessionToken(entry.userId, entry.mlUserId);
+  res.json({ token, userId: String(entry.userId), userName: entry.userName });
+});
+
+// Perfil do usuario — resposta enxuta (allowlist), sem dump do perfil ML.
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('name email ml_user_id ml_access_token ml_token_expires_at');
+    const user = await User.findById(req.userId).select('name email ml_user_id ml_nickname ml_access_token');
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
     let mlProfile = null;
@@ -121,20 +143,15 @@ router.get('/me', authMiddleware, async (req, res) => {
     } catch {}
 
     const canSell = mlProfile?.status?.sell?.allow === true;
-    const sellerExperience = mlProfile?.seller_experience;
-    const isSeller = canSell && !!sellerExperience;
+    const isSeller = canSell && !!mlProfile?.seller_experience;
 
     res.json({
       name: user.name,
       email: user.email,
       ml_user_id: user.ml_user_id,
+      ml_nickname: mlProfile?.nickname || user.ml_nickname || null,
       ml_seller: isSeller,
       ml_can_sell: canSell,
-      ml_seller_experience: sellerExperience,
-      ml_nickname: mlProfile?.nickname || null,
-      ml_tags: mlProfile?.tags || [],
-      ml_mercadoenvios: mlProfile?.status?.mercadoenvios || null,
-      _dump: mlProfile,
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar usuário' });

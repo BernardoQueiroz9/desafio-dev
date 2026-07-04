@@ -150,12 +150,15 @@ async function uploadPicture(accessToken, imageDataUrl) {
 }
 
 async function createItem(accessToken, data) {
+  // retries=1: a criacao NAO e reexecutada em falha de rede. Um timeout apos o
+  // ML ja ter criado o item duplicaria o anuncio no marketplace. A idempotencia
+  // fica a cargo do guard por idempotency_key no banco (routes/ads.js).
   return callWithRetry(async () => {
     const res = await axios.post(`${API_BASE}/items`, data, {
       headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
     return res.data;
-  });
+  }, 1);
 }
 
 async function updateItem(accessToken, itemId, data) {
@@ -267,21 +270,43 @@ const SELLER_ERROR_MAP = {
   },
 };
 
+// Padroes de mensagem/cause do ML mapeados para orientacoes acionaveis em pt-BR.
+// Cada entrada testa o texto agregado (error + causes + message) em minusculas.
+const GENERIC_PATTERNS = [
+  { match: /listing_type|available_listing_type|not.*allowed.*category|gold_special/, msg: 'Esta categoria não aceita o tipo de anúncio Clássico para a sua conta. Escolha outra categoria.' },
+  { match: /pictures|imagem|image|picture/, msg: 'Uma das imagens foi rejeitada pelo Mercado Livre (formato ou tamanho). Envie outra imagem.' },
+  { match: /attribute|atributo|required.*value|value.*required/, msg: 'Um atributo obrigatório da categoria está ausente ou inválido. Revise os dados do anúncio.' },
+  { match: /price|preço|precio/, msg: 'Preço inválido. Informe um valor maior que zero.' },
+  { match: /quantity|estoque|available_quantity/, msg: 'Estoque inválido. Informe uma quantidade de pelo menos 1.' },
+  { match: /title|título|titulo/, msg: 'Título inválido. Verifique o texto (máximo de 60 caracteres).' },
+  { match: /shipping|frete|envio|me2/, msg: 'Configuração de frete inválida para esta categoria. Tente sem frete grátis.' },
+];
+
 function mapMlError(errData) {
   if (!errData || Object.keys(errData).length === 0) return 'Erro de conexão com o Mercado Livre. Verifique sua rede e tente novamente.';
   const errorCode = errData.error;
   const causes = (errData.cause || []).map(c => typeof c === 'string' ? c : c.code || c.message || '');
+
+  // 1) Mapa curado de erros de vendedor (cadastro incompleto etc.)
   const errorMap = SELLER_ERROR_MAP[errorCode];
   if (errorMap) {
     for (const cause of causes) {
       if (errorMap[cause]) return errorMap[cause];
     }
   }
+
+  // 2) Padroes gerais por palavra-chave no conteudo agregado do erro.
+  const haystack = [errorCode, errData.message, ...causes].filter(Boolean).join(' ').toLowerCase();
+  for (const { match, msg } of GENERIC_PATTERNS) {
+    if (match.test(haystack)) return msg;
+  }
+
+  // 3) Fallback: mensagem do ML + causas, sem vazar payload tecnico bruto.
   const causeStr = causes.filter(Boolean).join('; ');
   if (causeStr) {
-    return (errData.message || 'Erro do Mercado Livre') + ' (' + causeStr + ')';
+    return (errData.message || 'O Mercado Livre recusou o anúncio') + ' (' + causeStr + ')';
   }
-  return errData.message || 'Erro desconhecido do Mercado Livre';
+  return errData.message || 'Não foi possível publicar o anúncio no Mercado Livre. Revise os dados e tente novamente.';
 }
 
 async function setDescription(accessToken, itemId, plainText) {

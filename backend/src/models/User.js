@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const ml = require('../services/mercadolibre');
+const { MlReauthRequired } = require('../services/errors');
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -18,15 +19,34 @@ UserSchema.methods.isTokenExpired = function () {
 UserSchema.methods.getValidToken = async function () {
   if (this.isTokenExpired()) {
     if (!this.ml_refresh_token) {
-      throw new Error('Token expirado e sem refresh_token. Faça login novamente.');
+      throw new MlReauthRequired();
     }
-    const data = await ml.refreshAccessToken(this.ml_refresh_token);
+    let data;
+    try {
+      data = await ml.refreshAccessToken(this.ml_refresh_token);
+    } catch (err) {
+      // Refresh recusado (refresh_token invalido/revogado) -> exigir novo login.
+      const status = err.response?.status;
+      if (status === 400 || status === 401) {
+        throw new MlReauthRequired();
+      }
+      throw err; // erros transitorios (rede/5xx) sobem como estao
+    }
     this.ml_access_token = data.access_token;
-    this.ml_refresh_token = data.refresh_token;
+    if (data.refresh_token) this.ml_refresh_token = data.refresh_token;
     this.ml_token_expires_at = new Date(Date.now() + data.expires_in * 1000);
     await this.save();
   }
   return this.ml_access_token;
 };
+
+// Nunca serializar tokens/segredos em respostas JSON.
+UserSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.ml_access_token;
+    delete ret.ml_refresh_token;
+    return ret;
+  },
+});
 
 module.exports = mongoose.model('User', UserSchema);

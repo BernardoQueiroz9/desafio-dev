@@ -12,9 +12,12 @@ const AdSchema = new mongoose.Schema({
   is_full: { type: Boolean, default: false },
   category_id: { type: String, default: '' },
   category_name: { type: String, default: '' },
+  idempotency_key: { type: String, default: null },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
 AdSchema.index({ user: 1, title: 1 });
+// Impede anuncios duplicados por retry (sparse: nulls nao conflitam).
+AdSchema.index({ user: 1, idempotency_key: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Ad', AdSchema);

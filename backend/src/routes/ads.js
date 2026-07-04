@@ -2,15 +2,25 @@ const express = require('express');
 const User = require('../models/User');
 const Ad = require('../models/Ad');
 const ml = require('../services/mercadolibre');
+const config = require('../config/env');
 const { authMiddleware } = require('./auth');
+const { handleReauth } = require('../services/errors');
 const router = express.Router();
 
-const ML_SITE_ID = process.env.ML_SITE_ID || 'MLB';
+const ML_SITE_ID = config.ml.siteId;
 const LISTING_TYPE = 'gold_special';
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full } = req.body;
+    const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full, idempotency_key } = req.body;
+
+    // Guard de idempotencia: um retry com a mesma chave nao recria o anuncio.
+    if (idempotency_key) {
+      const existing = await Ad.findOne({ user: req.userId, idempotency_key });
+      if (existing) {
+        return res.status(200).json(existing.toObject());
+      }
+    }
 
     if (available_quantity == null || available_quantity < 1 || isNaN(Number(available_quantity))) {
       return res.status(400).json({ error: 'Estoque deve ser no minimo 1' });
@@ -115,7 +125,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const createPayload = {
       ...basePayload,
-      seller_custom_field: `app_${user._id}_${Date.now()}`,
+      seller_custom_field: idempotency_key ? `app_${user._id}_${idempotency_key}` : `app_${user._id}_${Date.now()}`,
     };
     const mlItem = await ml.createItem(accessToken, createPayload);
 
@@ -140,6 +150,7 @@ router.post('/', authMiddleware, async (req, res) => {
       title, price: Number(price), available_quantity: Number(available_quantity), description,
       image: savedImages[0] || '', images: savedImages,
       category_id, category_name: categoryName, free_shipping, is_full,
+      idempotency_key: idempotency_key || null,
       user: req.userId,
     });
     await newAd.save();
@@ -150,14 +161,20 @@ router.post('/', authMiddleware, async (req, res) => {
     }
     res.status(201).json(response);
   } catch (error) {
+    if (handleReauth(res, error)) return;
     const errData = error.response?.data || {};
-    const errMsg = error.response ? JSON.stringify(errData, null, 2) : error.message;
-    console.error('Erro ao criar anuncio:', errMsg);
+    // Log estruturado no servidor para diagnostico (nao vaza ao usuario).
+    console.error('Erro ao criar anuncio:', JSON.stringify({
+      status: error.response?.status,
+      ml_error: errData.error,
+      ml_message: errData.message,
+      ml_cause: errData.cause,
+      stack: error.response ? undefined : error.stack,
+    }));
     const userMsg = ml.mapMlError(errData);
     const statusCode = error.response?.status || 500;
     res.status(statusCode >= 400 && statusCode < 500 ? statusCode : 500).json({
       error: userMsg,
-      details: Object.keys(errData).length > 0 ? errData : undefined,
     });
   }
 });
@@ -242,6 +259,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
     const failed = syncResults.filter(r => r && r.error).map(r => ({ ml_id: r.ml_id, _id: r._id, error: r.error }));
     res.json({ divergences, failed, checked: ads.length });
   } catch (error) {
+    if (handleReauth(res, error)) return;
     res.status(500).json({ error: 'Erro ao sincronizar' });
   }
 });
@@ -295,11 +313,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     res.json(ad);
   } catch (error) {
+    if (handleReauth(res, error)) return;
     if (error.name === 'VersionError') {
       return res.status(409).json({ error: 'Conflito: O anuncio foi modificado por outro processo.' });
     }
     console.error('Erro ao atualizar anuncio:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data?.message || error.message || 'Erro ao atualizar' });
+    res.status(500).json({ error: ml.mapMlError(error.response?.data || {}) });
   }
 });
 
