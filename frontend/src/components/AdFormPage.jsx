@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import CategoryPicker from './CategoryPicker';
+import { api } from '../api';
 
 const colors = {
   blue: '#3483FA', blueDark: '#2968C8', blueLight: '#E7F0FF',
@@ -17,10 +18,40 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(null);
   const [categorySelections, setCategorySelections] = useState([]);
+  const [reqAttrs, setReqAttrs] = useState([]);
+  const [attrLoading, setAttrLoading] = useState(false);
   const fileRef = useRef(null);
 
   const hasLeafCategory = !!formData.category_id;
   const images = formData.images || [];
+
+  // Ao escolher a categoria, busca os atributos obrigatorios dela para montar
+  // os campos que o usuario precisa preencher.
+  useEffect(() => {
+    if (!formData.category_id) { setReqAttrs([]); return; }
+    let cancelled = false;
+    setAttrLoading(true);
+    api.get(`/categories/${formData.category_id}/required-attributes`)
+      .then((res) => { if (!cancelled) setReqAttrs(Array.isArray(res.data) ? res.data : []); })
+      .catch(() => { if (!cancelled) setReqAttrs([]); })
+      .finally(() => { if (!cancelled) setAttrLoading(false); });
+    return () => { cancelled = true; };
+  }, [formData.category_id]);
+
+  const attrEntries = formData.attributes || [];
+  const getAttrValue = (attr) => {
+    const found = attrEntries.find((a) => a.id === attr.id);
+    return found ? (found.value_id ?? found.value_name ?? '') : '';
+  };
+  const setAttrValue = (attr, raw) => {
+    const others = attrEntries.filter((a) => a.id !== attr.id);
+    if (raw === '' || raw == null) {
+      setFormData({ ...formData, attributes: others });
+      return;
+    }
+    const entry = attr.type === 'list' ? { id: attr.id, value_id: raw } : { id: attr.id, value_name: raw };
+    setFormData({ ...formData, attributes: [...others, entry] });
+  };
 
   const handleLocalSubmit = async (e) => {
     e.preventDefault();
@@ -170,7 +201,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
           <>
             <CategoryPicker
               value={formData.category_id}
-              onChange={(catId) => setFormData({ ...formData, category_id: catId })}
+              onChange={(catId) => setFormData({ ...formData, category_id: catId, attributes: [] })}
               onSelect={(sel) => setCategorySelections(sel)}
             />
             {!hasLeafCategory && categorySelections.length > 0 && (
@@ -180,6 +211,49 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
             )}
           </>,
           'Categoria'
+        )}
+
+        {hasLeafCategory && (attrLoading || reqAttrs.length > 0) && (
+          <div style={{ border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '14px 16px', background: colors.bgCard }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: colors.textTer, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+              Ficha técnica (exigida pela categoria)
+            </p>
+            {attrLoading ? (
+              <p style={{ fontSize: '13px', color: colors.textTer }}>Carregando campos obrigatórios...</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {reqAttrs.map((attr) => (
+                  <div key={attr.id}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: colors.textSec, marginBottom: '4px' }}>
+                      {attr.name}
+                      {attr.validated && <span style={{ color: colors.textTer, fontWeight: 400 }}> (valor será validado pelo Mercado Livre)</span>}
+                    </label>
+                    {attr.type === 'list' ? (
+                      <select
+                        required
+                        value={getAttrValue(attr)}
+                        onChange={(e) => setAttrValue(attr, e.target.value)}
+                        style={{ width: '100%', padding: '9px 10px', border: `1px solid ${colors.border}`, borderRadius: '6px', fontSize: '14px', color: colors.text, background: '#FFF', fontFamily: 'inherit' }}
+                      >
+                        <option value="">Selecione...</option>
+                        {attr.values.map((v) => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        required
+                        value={getAttrValue(attr)}
+                        onChange={(e) => setAttrValue(attr, e.target.value)}
+                        placeholder={attr.hint || `Informe ${attr.name.toLowerCase()}`}
+                        style={{ width: '100%', padding: '9px 10px', border: `1px solid ${colors.border}`, borderRadius: '6px', fontSize: '14px', color: colors.text, background: '#FFF', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         <div className="form-row" style={{ display: 'flex', gap: '14px' }}>

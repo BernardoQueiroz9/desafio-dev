@@ -79,19 +79,23 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: `${pictures.length} de ${images.length} imagens foram enviadas. Todas as imagens precisam ser válidas.` });
     }
 
-    let itemAttributes = attributes || [];
+    // O formulario ja envia os atributos obrigatorios preenchidos pelo usuario.
+    // Se nao vierem, tentamos auto-preencher os de lista; o que faltar sera
+    // apontado pelo /items/validate do ML (nao bloqueamos aqui).
+    let itemAttributes = Array.isArray(attributes) ? attributes.filter(a => a && a.id) : [];
     if (itemAttributes.length === 0) {
-      const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
-      for (const attr of reqAttrs) {
-        if (attr.id === 'ITEM_CONDITION') continue;
-        if (attr.value_type === 'list' && attr._picked_value_id) {
-          itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
-        } else if (attr._picked_value) {
-          itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
+      try {
+        const reqAttrs = await ml.getCategoryRequiredAttributes(accessToken, category_id);
+        for (const attr of reqAttrs) {
+          if (attr.id === 'ITEM_CONDITION') continue;
+          if (attr.value_type === 'list' && attr._picked_value_id) {
+            itemAttributes.push({ id: attr.id, value_id: attr._picked_value_id });
+          } else if (attr._picked_value) {
+            itemAttributes.push({ id: attr.id, value_name: attr._picked_value });
+          }
         }
-      }
-      if (itemAttributes.length === 0) {
-        return res.status(400).json({ error: 'Não foi possível determinar os atributos obrigatórios para esta categoria.' });
+      } catch (attrErr) {
+        console.error('Falha ao auto-resolver atributos:', attrErr.message);
       }
     }
 

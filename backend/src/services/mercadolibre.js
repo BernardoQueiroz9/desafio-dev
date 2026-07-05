@@ -225,6 +225,30 @@ async function getAvailableListingTypes(accessToken, userId, categoryId) {
   return types;
 }
 
+// Schema dos atributos OBRIGATORIOS de uma categoria, para o formulario montar
+// os campos que o usuario precisa preencher (texto livre ou selecao de lista).
+async function getRequiredAttributesSchema(accessToken, categoryId) {
+  return callWithRetry(async () => {
+    const res = await axios.get(`${API_BASE}/categories/${categoryId}/attributes`, {
+      headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}` },
+    });
+    const all = Array.isArray(res.data) ? res.data : [];
+    return all
+      .filter(attr => attr.tags?.required || attr.tags?.catalog_required || attr.tags?.new_required)
+      .filter(attr => attr.id !== 'ITEM_CONDITION') // condicao ja e definida como 'new'
+      .map(attr => ({
+        id: attr.id,
+        name: attr.name || attr.id,
+        type: attr.value_type === 'list' ? 'list' : 'text',
+        values: attr.value_type === 'list'
+          ? (attr.allowed_values || attr.values || []).slice(0, 300).map(v => ({ id: v.id, name: v.name }))
+          : [],
+        hint: attr.tooltip || '',
+        validated: !!attr.tags?.validate,
+      }));
+  });
+}
+
 async function checkAvailableListingType(accessToken, userId, categoryId, listingTypeId) {
   const types = await getAvailableListingTypes(accessToken, userId, categoryId);
   return types.find(t => (t.id || t.listing_type_id) === listingTypeId) || null;
@@ -352,6 +376,7 @@ module.exports = {
   getItem,
   setDescription,
   getCategoryRequiredAttributes,
+  getRequiredAttributesSchema,
   checkAvailableListingType,
   getAvailableListingTypes,
   getCategory,

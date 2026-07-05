@@ -56,6 +56,22 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Atributos obrigatorios da categoria para o formulario dinamico.
+router.get('/:id/required-attributes', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const accessToken = await user.getValidToken();
+    const attrs = await ml.getRequiredAttributesSchema(accessToken, req.params.id);
+    res.json(attrs);
+  } catch (err) {
+    if (handleReauth(res, err)) return;
+    const msg = err.response?.data?.message || err.message;
+    console.error('Erro ao buscar atributos obrigatorios:', msg);
+    res.status(500).json({ error: 'Erro ao buscar atributos da categoria' });
+  }
+});
+
 router.get('/:id/children', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
