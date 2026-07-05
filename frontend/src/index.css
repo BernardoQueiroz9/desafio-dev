@@ -363,6 +363,14 @@ img {
   }
 }
 
+/* ─── Mobile muito estreito (<389): esconde "Sair" do header, mantem "Voltar" ─── */
+
+@media (max-width: 388px) {
+  .header-logout-btn {
+    display: none !important;
+  }
+}
+
 /* ─── Desktop (≥769) ─── */
 
 @media (min-width: 769px) {
