@@ -64,9 +64,17 @@ function Login() {
         .then((res) => {
           const { token, userId, userName } = res.data;
           if (!token) throw new Error('resposta sem token');
-          localStorage.setItem('token', token);
-          localStorage.setItem('userId', userId);
-          if (userName) localStorage.setItem('userName', userName);
+          try {
+            localStorage.setItem('token', token);
+            localStorage.setItem('userId', userId);
+            if (userName) localStorage.setItem('userName', userName);
+          } catch {}
+          // Confirma que o armazenamento persistiu. Modo privado/anonimo (ex.:
+          // Safari iOS) bloqueia localStorage, o que causaria 401 no dashboard.
+          if (localStorage.getItem('token') !== token) {
+            setError('Seu navegador está bloqueando o armazenamento deste site (modo privado/anônimo?). Saia do modo privado ou permita cookies/armazenamento e tente novamente.');
+            return;
+          }
           navigate('/dashboard', { replace: true });
         })
         .catch((err) => {

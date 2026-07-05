@@ -34,9 +34,10 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/') {
         // Registra o motivo para a tela de login exibir (evita "voltar ao login" silencioso).
         const code = err.response?.data?.code;
+        const backendMsg = err.response?.data?.error || '';
         const reason = code === 'ML_REAUTH_REQUIRED'
           ? 'Sua sessão com o Mercado Livre expirou. Entre novamente.'
-          : `Sua sessão expirou (401 em ${err.config?.url || 'requisição'}). Entre novamente.`;
+          : `Sessão encerrada [${err.config?.url || '?'}: ${backendMsg || '401'}]. Entre novamente.`;
         try { sessionStorage.setItem('authError', reason); } catch {}
         window.location.href = '/';
       }
