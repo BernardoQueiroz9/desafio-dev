@@ -170,12 +170,15 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const maxTitle = rules?.max_title_length || 60;
   const maxPics = rules?.max_pictures || 6;
   const titleLen = (formData.title || '').length;
-  const cannotList = !!rules && rules.can_list_now === false;
+  // Bloqueia SO com sinais confiaveis: a propria categoria nao permitir anuncio.
+  // available_listing_types e nao-confiavel (vem vazio ate p/ categorias validas),
+  // entao restricoes por conta ficam por conta do erro real do ML ao publicar.
+  const cannotList = !!rules && rules.listing_allowed === false;
   const priceBelowMin = !!rules && priceNum != null && rules.min_price != null && priceNum < rules.min_price;
   const priceAboveMax = !!rules && priceNum != null && rules.max_price != null && priceNum > rules.max_price;
   const conditionBlocked = !!rules && Array.isArray(rules.item_conditions) && rules.item_conditions.length > 0 && !rules.item_conditions.includes('new');
   const blockReasons = [];
-  if (cannotList) blockReasons.push('Sua conta não pode anunciar nesta categoria (categoria restrita ou de catálogo). Escolha outra categoria.');
+  if (cannotList) blockReasons.push('Esta categoria não permite anúncios no momento. Escolha outra categoria.');
   if (conditionBlocked) blockReasons.push('Esta categoria não aceita produtos novos. Escolha outra categoria.');
   if (priceBelowMin) blockReasons.push(`Preço abaixo do mínimo permitido (R$ ${rules.min_price}).`);
   if (priceAboveMax) blockReasons.push(`Preço acima do máximo permitido (R$ ${rules.max_price}).`);

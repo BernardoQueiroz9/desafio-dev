@@ -143,16 +143,21 @@ router.get('/me', authMiddleware, async (req, res) => {
       mlProfile = await ml.getUser(user.ml_access_token);
     } catch {}
 
-    const canSell = mlProfile?.status?.sell?.allow === true;
-    const isSeller = canSell && !!mlProfile?.seller_experience;
+    const sellAllow = mlProfile?.status?.sell?.allow;
+    const listAllow = mlProfile?.status?.list?.allow;
+    // So marcamos "nao vendedora" quando o perfil do ML carregou E diz
+    // explicitamente que a conta nao pode vender/anunciar. Se o perfil nao
+    // carregou ou os campos vierem indefinidos, NAO exibimos o alerta.
+    const ml_seller = mlProfile ? !(sellAllow === false || listAllow === false) : true;
 
     res.json({
       name: user.name,
       email: user.email,
       ml_user_id: user.ml_user_id,
       ml_nickname: mlProfile?.nickname || user.ml_nickname || null,
-      ml_seller: isSeller,
-      ml_can_sell: canSell,
+      ml_seller,
+      ml_can_sell: sellAllow === true,
+      ml_can_list: listAllow === true,
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar usuário' });
