@@ -360,10 +360,13 @@ function Dashboard() {
     setLogoutModal(false);
     // URL de logout real do Mercado Livre (o /logout do .com.br nao existe -> 404).
     // Este endpoint passa pelo auth.mercadolivre.com.br, encerrando a sessao do OAuth.
+    // Como o ML so redireciona para dominios dele, abrimos o logout numa aba e a
+    // fechamos apos concluir, deixando o usuario na tela de login do proprio app.
     const ML_LOGOUT = 'https://www.mercadolibre.com/jms/mlb/lgz/logout';
-    const win = window.open(ML_LOGOUT, '_blank', 'noopener');
+    const win = window.open(ML_LOGOUT, '_blank');
+    navigate('/');
     if (win) {
-      navigate('/');
+      setTimeout(() => { try { win.close(); } catch {} }, 3000);
     } else {
       // Popup bloqueado: redireciona a propria pagina para o logout do ML.
       window.location.href = ML_LOGOUT;
