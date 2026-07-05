@@ -21,21 +21,30 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const [reqAttrs, setReqAttrs] = useState([]);
   const [attrLoading, setAttrLoading] = useState(false);
   const [imgWarning, setImgWarning] = useState('');
+  const [rules, setRules] = useState(null);
   const fileRef = useRef(null);
+
+  const LISTING_TYPE_LABELS = {
+    free: 'Grátis', gold_special: 'Clássico', gold_pro: 'Premium',
+    gold: 'Ouro', silver: 'Prata', bronze: 'Bronze',
+  };
 
   const hasLeafCategory = !!formData.category_id;
   const images = formData.images || [];
 
-  // Ao escolher a categoria, busca os atributos obrigatorios dela para montar
-  // os campos que o usuario precisa preencher.
+  // Ao escolher a categoria, busca os atributos obrigatorios e as regras/limites
+  // que o Mercado Livre impoe, para montar campos e alertas/bloqueios.
   useEffect(() => {
-    if (!formData.category_id) { setReqAttrs([]); return; }
+    if (!formData.category_id) { setReqAttrs([]); setRules(null); return; }
     let cancelled = false;
     setAttrLoading(true);
     api.get(`/categories/${formData.category_id}/required-attributes`)
       .then((res) => { if (!cancelled) setReqAttrs(Array.isArray(res.data) ? res.data : []); })
       .catch(() => { if (!cancelled) setReqAttrs([]); })
       .finally(() => { if (!cancelled) setAttrLoading(false); });
+    api.get(`/categories/${formData.category_id}/rules`)
+      .then((res) => { if (!cancelled) setRules(res.data); })
+      .catch(() => { if (!cancelled) setRules(null); });
     return () => { cancelled = true; };
   }, [formData.category_id]);
 
@@ -152,6 +161,27 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
     outline: 'none', background: 'transparent', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
+  // --- Validacoes/alertas espelhando as regras do Mercado Livre ---
+  const priceNum = (() => {
+    const raw = String(formData.price || '').replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(raw);
+    return isNaN(n) ? null : n;
+  })();
+  const maxTitle = rules?.max_title_length || 60;
+  const maxPics = rules?.max_pictures || 6;
+  const titleLen = (formData.title || '').length;
+  const cannotList = !!rules && rules.can_list_now === false;
+  const priceBelowMin = !!rules && priceNum != null && rules.min_price != null && priceNum < rules.min_price;
+  const priceAboveMax = !!rules && priceNum != null && rules.max_price != null && priceNum > rules.max_price;
+  const conditionBlocked = !!rules && Array.isArray(rules.item_conditions) && rules.item_conditions.length > 0 && !rules.item_conditions.includes('new');
+  const blockReasons = [];
+  if (cannotList) blockReasons.push('Sua conta não pode anunciar nesta categoria (categoria restrita ou de catálogo). Escolha outra categoria.');
+  if (conditionBlocked) blockReasons.push('Esta categoria não aceita produtos novos. Escolha outra categoria.');
+  if (priceBelowMin) blockReasons.push(`Preço abaixo do mínimo permitido (R$ ${rules.min_price}).`);
+  if (priceAboveMax) blockReasons.push(`Preço acima do máximo permitido (R$ ${rules.max_price}).`);
+  const blocked = blockReasons.length > 0;
+  const planLabels = (rules?.available_listing_types || []).map((t) => LISTING_TYPE_LABELS[t] || t);
+
   return (
     <div style={{ width: '100%' }} className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -219,10 +249,14 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
         {fieldCard(
           <div>
             <input required placeholder="Ex: iPhone 14 Pro Max 128GB" value={formData.title}
+              maxLength={maxTitle}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               style={inputStyle}
               onFocus={() => setFocused('title')} onBlur={() => setFocused(null)} />
             <div style={{ height: '2px', background: focused === 'title' ? colors.blue : 'transparent', borderRadius: '1px', marginTop: '4px', transition: 'background 0.15s' }} />
+            <p style={{ fontSize: '11px', color: titleLen >= maxTitle ? colors.blue : colors.textTer, marginTop: '4px', textAlign: 'right' }}>
+              {titleLen}/{maxTitle}
+            </p>
           </div>,
           'Titulo do anúncio'
         )}
@@ -241,6 +275,33 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
             )}
           </>,
           'Categoria'
+        )}
+
+        {hasLeafCategory && rules && (
+          <div style={{ border: `1px solid ${blocked ? '#F5C6CB' : '#BEE5EB'}`, borderRadius: '6px', padding: '12px 14px', background: blocked ? '#F8D7DA' : '#E7F0FF' }}>
+            {blocked ? (
+              <>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#721C24', marginBottom: '6px' }}>
+                  ⚠ Não é possível anunciar aqui
+                </p>
+                {blockReasons.map((r, i) => (
+                  <p key={i} style={{ fontSize: '12px', color: '#721C24', marginBottom: '2px' }}>• {r}</p>
+                ))}
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: colors.blueDark, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                  Regras desta categoria (Mercado Livre)
+                </p>
+                <div style={{ fontSize: '12px', color: colors.textSec, lineHeight: 1.6 }}>
+                  <div>• Título: até <strong>{maxTitle}</strong> caracteres</div>
+                  <div>• Fotos: até <strong>{maxPics}</strong> · Preço: de <strong>R$ {rules.min_price ?? 0}</strong>{rules.max_price ? <> até <strong>R$ {rules.max_price}</strong></> : ' (sem teto)'}</div>
+                  {planLabels.length > 0 && <div>• Tipos disponíveis: <strong>{planLabels.join(', ')}</strong></div>}
+                  {rules.catalog_domain && <div style={{ color: '#856404' }}>• Categoria de catálogo — pode exigir vínculo a um produto existente</div>}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {hasLeafCategory && (attrLoading || reqAttrs.length > 0) && (
@@ -371,12 +432,12 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" disabled={!hasLeafCategory || submitting} style={{
+          <button type="submit" disabled={!hasLeafCategory || submitting || blocked} style={{
             flex: 1, padding: '13px', borderRadius: '6px', border: 'none',
-            background: !hasLeafCategory ? '#CCC' : (submitting ? '#B0C4DE' : colors.blue), color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: !hasLeafCategory || submitting ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: '4px',
+            background: (!hasLeafCategory || blocked) ? '#CCC' : (submitting ? '#B0C4DE' : colors.blue), color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: (!hasLeafCategory || submitting || blocked) ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: '4px',
           }}
-            onMouseEnter={(e) => { if (!submitting && hasLeafCategory) e.target.style.background = colors.blueDark; }}
-            onMouseLeave={(e) => { if (!submitting && hasLeafCategory) e.target.style.background = colors.blue; }}
+            onMouseEnter={(e) => { if (!submitting && hasLeafCategory && !blocked) e.target.style.background = colors.blueDark; }}
+            onMouseLeave={(e) => { if (!submitting && hasLeafCategory && !blocked) e.target.style.background = colors.blue; }}
           >{submitting ? (formData.id ? 'Atualizando...' : 'Publicando...') : (formData.id ? 'Atualizar Anúncio' : 'Publicar Anúncio')}</button>
 
           <button type="button" onClick={onCancel}

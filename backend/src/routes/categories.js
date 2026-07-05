@@ -56,6 +56,47 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Regras/limites que o ML impoe para a categoria + o que a conta pode anunciar.
+// Alimenta os alertas e bloqueios do formulario, espelhando o site do ML.
+router.get('/:id/rules', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const accessToken = await user.getValidToken();
+
+    const [cat, listingTypes] = await Promise.all([
+      ml.getCategory(accessToken, req.params.id),
+      ml.getAvailableListingTypes(accessToken, user.ml_user_id, req.params.id).catch(() => []),
+    ]);
+    const s = cat.settings || {};
+    const availableTypes = listingTypes
+      .map(t => t.id || t.listing_type_id)
+      .filter(Boolean);
+
+    res.json({
+      name: cat.name,
+      // Categoria permite anuncio no geral (config da categoria)
+      listing_allowed: s.listing_allowed !== false && s.status === 'enabled',
+      // A CONTA consegue anunciar nesta categoria agora (especifico do usuario)
+      can_list_now: availableTypes.length > 0,
+      available_listing_types: availableTypes,
+      catalog_domain: s.catalog_domain || null,
+      max_title_length: s.max_title_length || 60,
+      max_pictures: s.max_pictures_per_item || 6,
+      min_price: s.minimum_price ?? 0,
+      max_price: s.maximum_price ?? null,
+      item_conditions: s.item_conditions || [],
+      immediate_payment: s.immediate_payment || null,
+      status: s.status || null,
+    });
+  } catch (err) {
+    if (handleReauth(res, err)) return;
+    const msg = err.response?.data?.message || err.message;
+    console.error('Erro ao buscar regras da categoria:', msg);
+    res.status(500).json({ error: 'Erro ao buscar regras da categoria' });
+  }
+});
+
 // Atributos obrigatorios da categoria para o formulario dinamico.
 router.get('/:id/required-attributes', authMiddleware, async (req, res) => {
   try {
