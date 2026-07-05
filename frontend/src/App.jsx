@@ -49,22 +49,18 @@ function Login() {
 
   // No mobile (Android), o login pode voltar do app do Mercado Livre numa aba
   // diferente da original. As abas do Chrome compartilham o localStorage, entao
-  // quando o token aparece (evento de storage) ou quando esta aba volta ao foco,
-  // detectamos o login e vamos para o dashboard automaticamente.
+  // quando OUTRA aba salva o token (evento 'storage'), esta aba detecta e vai
+  // para o dashboard. So escutamos 'storage' (dispara apenas na escrita real do
+  // token em outra aba) — nada de focus/visibilitychange, que disparavam sempre
+  // e, com token antigo, causavam redirecionamentos indevidos.
   useEffect(() => {
-    const check = () => {
-      if (localStorage.getItem('token') && localStorage.getItem('userId')) {
+    const onStorage = (e) => {
+      if (e.key === 'token' && e.newValue && localStorage.getItem('userId')) {
         navigate('/dashboard', { replace: true });
       }
     };
-    window.addEventListener('storage', check);
-    window.addEventListener('focus', check);
-    document.addEventListener('visibilitychange', check);
-    return () => {
-      window.removeEventListener('storage', check);
-      window.removeEventListener('focus', check);
-      document.removeEventListener('visibilitychange', check);
-    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [navigate]);
 
   useEffect(() => {
