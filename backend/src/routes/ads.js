@@ -360,6 +360,31 @@ router.put('/:id', authMiddleware, async (req, res) => {
         free_shipping: !!free_shipping,
       };
     }
+
+    // Reprocessa imagens: novas (data URL) sao enviadas ao ML; URLs ja
+    // existentes sao mantidas. O ML substitui o conjunto de fotos do item.
+    let savedImages = null;
+    if (images !== undefined && Array.isArray(images)) {
+      const mlPictures = [];
+      const urls = [];
+      for (const img of images) {
+        if (typeof img === 'string' && img.startsWith('data:')) {
+          const picData = await ml.uploadPicture(accessToken, img);
+          if (picData && (picData.id || picData.source)) {
+            mlPictures.push(picData.id ? { id: picData.id } : { source: picData.source });
+            urls.push(picData.source || '');
+          }
+        } else if (typeof img === 'string' && img.startsWith('http')) {
+          mlPictures.push({ source: img });
+          urls.push(img);
+        }
+      }
+      if (mlPictures.length > 0) {
+        updatePayload.pictures = mlPictures;
+        savedImages = urls;
+      }
+    }
+
     await ml.updateItem(accessToken, ad.ml_id, updatePayload);
 
     if (description) {
@@ -371,9 +396,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     ad.title = title;
     ad.price = price;
     ad.available_quantity = available_quantity;
-    if (images !== undefined) {
-      ad.images = images;
-      ad.image = images[0] || '';
+    if (savedImages) {
+      ad.images = savedImages;
+      ad.image = savedImages[0] || '';
     }
     if (description !== undefined) ad.description = description;
     if (free_shipping !== undefined) ad.free_shipping = free_shipping;
