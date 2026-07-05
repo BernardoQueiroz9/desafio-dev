@@ -351,21 +351,20 @@ function Dashboard() {
     navigate('/');
   };
 
-  // Sai da conta do Mercado Livre: dispara o logout do ML em segundo plano
-  // (iframe oculto), para que o proximo "Entrar" permita escolher outra conta,
-  // e volta para a tela de login do app — sem deixar o usuario na pagina do ML.
+  // Sai da conta do Mercado Livre: abre o logout do ML numa nova aba (contexto
+  // proprio do ML, sem bloqueio de cookies de terceiros) para encerrar a sessao
+  // de verdade e permitir escolher outra conta no proximo login. O app fica na
+  // tela de login. Se o popup for bloqueado, cai para o redirect de pagina.
   const doAccountLogout = () => {
     clearSession();
     setLogoutModal(false);
-    try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.setAttribute('aria-hidden', 'true');
-      iframe.src = 'https://www.mercadolivre.com.br/logout';
-      document.body.appendChild(iframe);
-      setTimeout(() => { try { iframe.remove(); } catch {} }, 4000);
-    } catch {}
-    navigate('/');
+    const win = window.open('https://www.mercadolivre.com.br/logout', '_blank', 'noopener');
+    if (win) {
+      navigate('/');
+    } else {
+      // Popup bloqueado: redireciona a propria pagina para o logout do ML.
+      window.location.href = 'https://www.mercadolivre.com.br/logout';
+    }
   };
 
   const handleSearch = (query) => {
