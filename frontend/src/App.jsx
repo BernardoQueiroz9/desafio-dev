@@ -34,6 +34,13 @@ function Login() {
   const location = useLocation();
   const [error, setError] = useState('');
 
+  // Pre-aquece o backend (Render hiberna e leva ~20s+ para acordar). Assim,
+  // quando o usuario clicar em "Entrar", o servidor ja esta quente e o login
+  // nao estoura o tempo do codigo de troca no mobile.
+  useEffect(() => {
+    api.get('/health').catch(() => {});
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
@@ -42,6 +49,12 @@ function Login() {
     if (code) {
       // Limpa o code da URL imediatamente (nao deixa no historico).
       window.history.replaceState({}, '', '/');
+      // Se ja temos token (ex.: recarga da pagina com o mesmo code no mobile),
+      // vai direto pro dashboard sem tentar trocar o code de novo.
+      if (localStorage.getItem('token') && localStorage.getItem('userId')) {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
       api.post('/auth/exchange', { code })
         .then((res) => {
           const { token, userId, userName } = res.data;
@@ -50,8 +63,19 @@ function Login() {
           if (userName) localStorage.setItem('userName', userName);
           navigate('/dashboard', { replace: true });
         })
-        .catch(() => {
-          setError('Não foi possível concluir o login. Tente novamente.');
+        .catch((err) => {
+          // Se o code ja foi usado mas o token existe, considera logado.
+          if (localStorage.getItem('token') && localStorage.getItem('userId')) {
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+          const status = err.response?.status;
+          if (status === 410) {
+            setError('O código de login expirou. Toque em "Entrar com Mercado Livre" novamente (o servidor pode ter demorado a acordar).');
+          } else {
+            const detail = err.response?.data?.error || err.message || 'erro desconhecido';
+            setError(`Não foi possível concluir o login (${status || 'sem resposta'}: ${detail}).`);
+          }
         });
       return;
     }

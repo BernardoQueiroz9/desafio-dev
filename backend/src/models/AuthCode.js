@@ -11,7 +11,8 @@ const AuthCodeSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   mlUserId: { type: String, required: true },
   userName: { type: String, default: '' },
-  createdAt: { type: Date, default: Date.now, expires: 60 },
+  // 5 min: folga para redes moveis lentas / cold start do backend.
+  createdAt: { type: Date, default: Date.now, expires: 300 },
 }, { _id: false, versionKey: false });
 
 module.exports = mongoose.model('AuthCode', AuthCodeSchema);
