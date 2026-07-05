@@ -1,7 +1,9 @@
 node_modules/
 .env
+.env.example
 .DS_Store
 dist/
 .agents/
 .opencode/
 skills-lock.json
+specs/
