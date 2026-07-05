@@ -47,6 +47,26 @@ function Login() {
     }
   }, []);
 
+  // No mobile (Android), o login pode voltar do app do Mercado Livre numa aba
+  // diferente da original. As abas do Chrome compartilham o localStorage, entao
+  // quando o token aparece (evento de storage) ou quando esta aba volta ao foco,
+  // detectamos o login e vamos para o dashboard automaticamente.
+  useEffect(() => {
+    const check = () => {
+      if (localStorage.getItem('token') && localStorage.getItem('userId')) {
+        navigate('/dashboard', { replace: true });
+      }
+    };
+    window.addEventListener('storage', check);
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      window.removeEventListener('storage', check);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [navigate]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
