@@ -16,108 +16,73 @@ Sistema full-stack para criação, listagem, edição e sincronização de anún
 
 ## Pré-requisitos
 
-1. Node.js 18+
-2. Conta de desenvolvedor no Mercado Livre
+- **Conta vendedora no Mercado Livre** — a conta usada para entrar precisa estar habilitada a vender (cadastro completo: endereço, telefone e documentos). Publicar um anúncio real é uma ação da plataforma do ML e exige uma conta de vendedor; sem isso, o Mercado Livre recusa a publicação.
 
-## Configuração do Mercado Livre
+## Como anunciar na minha aplicação
 
-1. Acesse o [DevCenter do Mercado Livre](https://developers.mercadolivre.com.br/devcenter/)
-2. Crie uma nova aplicação com:
-   - **Nome:** DesafioML
-   - **Redirect URI:**
-     - `https://desafio-dev-api.onrender.com/api/auth/ml/callback`
-   - **Scopes:** Leitura, Escrita, Offline Access
-3. Anote o **Client ID** e **Client Secret**
+Passo a passo para publicar um anúncio de verdade na sua conta do Mercado Livre.
 
-## Variáveis de ambiente
+### 1. Entrar
 
-### Backend (`backend/.env`)
+1. Acesse **https://desafio-dev-two.vercel.app**.
+2. Clique em **"Entrar com Mercado Livre"**.
+3. Faça login e **autorize** o aplicativo na tela do Mercado Livre. Você volta automaticamente já logado.
 
-| Variável | Descrição | Padrão |
-|---|---|---|
-| `NODE_ENV` | Em `production`, ativa o fail-fast: o servidor não sobe sem os segredos obrigatórios | (vazio) |
-| `PORT` | Porta do servidor | `3000` |
-| `MONGO_URI` | String de conexão MongoDB Atlas | (usa mongodb-memory-server) |
-| `FRONTEND_URL` | Origem permitida no CORS | `http://localhost:5173` |
-| `BACKEND_URL` | URL base do próprio backend | `http://localhost:3000` |
-| `ML_CLIENT_ID` | Client ID da aplicação no Mercado Livre | (obrigatório) |
-| `ML_CLIENT_SECRET` | Secret Key da aplicação no Mercado Livre | (obrigatório) |
-| `ML_REDIRECT_URI` | URL de callback do OAuth | `http://localhost:3000/api/auth/ml/callback` |
-| `ML_SITE_ID` | Site do Mercado Livre (MLB = Brasil) | `MLB` |
-| `JWT_SECRET` | Chave secreta para tokens JWT | (obrigatório) |
+> 💡 Quer testar com outra conta? Use **Sair → "Sair da conta"** (botão vermelho). Isso desconecta do Mercado Livre e, no próximo acesso, permite escolher outra conta.
 
-### Frontend (`frontend/.env`)
+### 2. Abrir o formulário de anúncio
 
-| Variável | Descrição | Padrão |
-|---|---|---|
-| `VITE_API_URL` | URL base da API | `http://localhost:3000/api` |
+1. Vá em **"Meus Anúncios"**.
+2. Clique em **"Novo Anúncio"**.
 
-## Como rodar localmente
+### 3. Preencher o anúncio
 
-```bash
-# Clone o repositorio
-git clone https://github.com/BernardoQueiroz9/desafio-dev.git
-cd desafio-dev
+- **Título** — nome do produto (o app respeita o limite da categoria, mostrado ao lado).
+- **Foto** — clique para adicionar. Para a imagem aparecer bem no Mercado Livre, siga o padrão:
+  - Quadrada (1:1), **pelo menos 500×500 px** (ideal 1200×1200).
+  - Fundo claro, **sem** texto, logo ou moldura.
+  - O app ajusta o tamanho automaticamente e avisa se a imagem for pequena demais.
+- **Categoria** — clique navegando pelas subcategorias **até o fim** (quando não houver mais subcategoria, ela é selecionada). Escolher a categoria certa é o passo mais importante (veja as dicas abaixo).
+- **Ficha técnica** — se a categoria exigir atributos obrigatórios (ex.: marca, cor), o app mostra os campos automaticamente. Preencha-os.
+- **Preço** e **Estoque** (mínimo 1).
+- **Descrição** e opções de **frete**.
 
-# Backend
-cd backend
-npm install
-# Crie o arquivo backend/.env com as variaveis acima
-npm start
+### 4. Publicar
 
-# Frontend (em outro terminal)
-cd frontend
-npm install
-npm run dev
-```
+1. Clique em **"Publicar Anúncio"**.
+2. Se der tudo certo, o anúncio aparece em **"Meus Anúncios"** e na sua conta do Mercado Livre.
 
-O frontend estará em `http://localhost:5173` e o backend em `http://localhost:3000`.
+### 5. Conferir no Mercado Livre
 
-## Fluxo de autenticação
+- Em **mercadolivre.com.br**, logado, acesse **Vendas → Publicações** para ver o anúncio ativo.
 
-O login usa OAuth 2.0 com PKCE (S256). O token de sessão (JWT) **nunca** trafega na URL: o backend entrega ao frontend um código de troca de uso único, que é trocado pelo JWT numa chamada separada.
+## O que escolher para anunciar com sucesso
 
-1. O usuario clica em "Entrar com Mercado Livre" na tela de login
-2. O backend gera `state` + verificador PKCE e os persiste no MongoDB (índice TTL ~5min) — assim o login sobrevive a reinícios/múltiplas instâncias
-3. O usuario autoriza no Mercado Livre e é redirecionado de volta ao callback
-4. O backend valida o `state` (uso único), troca o código por tokens do ML e faz upsert do usuario
-5. O backend redireciona o frontend com `?code=<opaco>` (um código de troca de uso único, TTL ~60s) — **sem** o JWT na URL
-6. O frontend chama `POST /api/auth/exchange { code }` e recebe o JWT no corpo da resposta, guardando-o para as requisicoes seguintes
+O app espelha as regras do Mercado Livre e avisa na tela quando algo não é permitido. Para uma publicação tranquila:
 
-Quando o token do Mercado Livre expira e não pode ser renovado, a API responde `401 { code: "ML_REAUTH_REQUIRED" }` e o frontend redireciona o usuario ao login novamente.
+### Tipo de conta (vendedor)
 
-### Pré-requisitos de conta de vendedor no Mercado Livre
+- A conta precisa estar **habilitada a vender**. Se não estiver, aparece um aviso e o Mercado Livre recusa a publicação — complete o cadastro de vendedor no site do ML (menu **"Vender"**).
+- O **tipo de anúncio** (Grátis, Clássico ou Premium) é escolhido **automaticamente** pelo app conforme o que a sua conta tem disponível. Contas de teste ou novas costumam ter apenas o tipo **Grátis**, o que é suficiente para publicar.
 
-Para publicar anúncios, a conta precisa estar habilitada como vendedora no ML: endereço, telefone e documentos completos, e (em muitos casos) ao menos um anúncio criado manualmente no site do ML para liberar a conta. Contas incompletas recebem uma mensagem específica orientando o que completar.
+### Categorias
+
+- **Escolha sempre uma categoria final** (a última da árvore, sem subcategorias).
+- **Prefira categorias simples**, com poucos ou nenhum atributo obrigatório — a publicação é mais direta.
+- **Evite categorias de catálogo restritas**, como **Celulares e Smartphones**: o Mercado Livre exige autorização de marca/catálogo e normalmente **bloqueia** vendedores comuns nessas categorias.
+- **Evite categorias com atributos validados** que você não tem, como **Livros** (exigem o **ISBN/GTIN** real, validado pelo ML).
+- Categorias com poucos atributos (por exemplo, subcategorias de **"Outros"** ou de **coleções**) são as mais fáceis para um primeiro anúncio.
+
+> ℹ️ Se você escolher uma categoria que a sua conta não pode usar, o app deixa você tentar e mostra a **mensagem real do Mercado Livre** explicando o motivo — em vez de travar sem explicação.
 
 ## Funcionalidades
 
-- Autenticacao via OAuth do Mercado Livre
-- CRUD de anuncios (criar, listar, editar, excluir) com publicacao direta no ML
-- Upload de imagem com drag-and-drop e compressao client-side
-- Seletor hierarquico de categorias do Mercado Livre
-- Busca por titulo com filtro de preco
-- Grade de produtos com "Anunciado por: nome do vendedor"
-- Pagina "Meus Anuncios" com edicao e exclusao
-- Sincronizacao com marketplace (deteccao de divergencias)
-
-## Estrutura do projeto
-
-```
-desafio-dev/
-├── backend/
-│   ├── src/
-│   │   ├── models/          # Mongoose schemas (User, Ad)
-│   │   ├── routes/          # Express routes (auth, ads, categories)
-│   │   ├── services/        # Integracao com API do Mercado Livre
-│   │   └── server.js        # Configuracao do servidor
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # Componentes React
-│   │   ├── api.js           # Axios instance com JWT
-│   │   ├── App.jsx          # Rotas e logica principal
-│   │   └── main.jsx         # Entry point
-│   └── package.json
-└── README.md
-```
+- Autenticação via OAuth do Mercado Livre (com PKCE), sem expor o token na URL
+- CRUD de anúncios (criar, listar, editar, excluir) com publicação direta no ML
+- Upload de imagem com compressão e validação de tamanho/qualidade
+- Seletor hierárquico de categorias do Mercado Livre
+- Formulário dinâmico de atributos obrigatórios da categoria
+- Alertas e bloqueios espelhando as regras do Mercado Livre (limites de título, preço, fotos)
+- Busca por título com filtro de preço
+- Página "Meus Anúncios" com edição e exclusão
+- Sincronização com o marketplace (detecção de divergências)
