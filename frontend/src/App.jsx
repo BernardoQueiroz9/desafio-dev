@@ -39,6 +39,12 @@ function Login() {
   // nao estoura o tempo do codigo de troca no mobile.
   useEffect(() => {
     api.get('/health').catch(() => {});
+    // Se o usuario foi devolvido ao login por sessao expirada (401), mostra o motivo.
+    const authError = sessionStorage.getItem('authError');
+    if (authError) {
+      setError(authError);
+      sessionStorage.removeItem('authError');
+    }
   }, []);
 
   useEffect(() => {
@@ -49,29 +55,24 @@ function Login() {
     if (code) {
       // Limpa o code da URL imediatamente (nao deixa no historico).
       window.history.replaceState({}, '', '/');
-      // Se ja temos token (ex.: recarga da pagina com o mesmo code no mobile),
-      // vai direto pro dashboard sem tentar trocar o code de novo.
-      if (localStorage.getItem('token') && localStorage.getItem('userId')) {
-        navigate('/dashboard', { replace: true });
-        return;
-      }
+      // A troca do code novo e sempre autoritativa: limpamos qualquer token
+      // antigo/invalido antes, para o novo login sobrescrever de forma limpa.
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userName');
       api.post('/auth/exchange', { code })
         .then((res) => {
           const { token, userId, userName } = res.data;
+          if (!token) throw new Error('resposta sem token');
           localStorage.setItem('token', token);
           localStorage.setItem('userId', userId);
           if (userName) localStorage.setItem('userName', userName);
           navigate('/dashboard', { replace: true });
         })
         .catch((err) => {
-          // Se o code ja foi usado mas o token existe, considera logado.
-          if (localStorage.getItem('token') && localStorage.getItem('userId')) {
-            navigate('/dashboard', { replace: true });
-            return;
-          }
           const status = err.response?.status;
           if (status === 410) {
-            setError('O código de login expirou. Toque em "Entrar com Mercado Livre" novamente (o servidor pode ter demorado a acordar).');
+            setError('O código de login expirou. Toque em "Entrar com Mercado Livre" novamente.');
           } else {
             const detail = err.response?.data?.error || err.message || 'erro desconhecido';
             setError(`Não foi possível concluir o login (${status || 'sem resposta'}: ${detail}).`);

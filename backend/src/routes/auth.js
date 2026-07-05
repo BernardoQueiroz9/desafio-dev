@@ -114,7 +114,7 @@ router.get('/ml/callback', async (req, res) => {
   } catch (err) {
     const msg = err.response?.data?.error || err.response?.data?.message || err.message;
     console.error('ML callback error:', msg);
-    res.redirect(`${frontendUrl}/?error=${encodeURIComponent('login_failed')}`);
+    res.redirect(`${frontendUrl}/?error=${encodeURIComponent('login_failed: ' + String(msg).slice(0, 140))}`);
   }
 });
 
