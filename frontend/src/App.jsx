@@ -215,7 +215,6 @@ function Dashboard() {
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [sellerActive, setSellerActive] = useState(true);
-  const [logoutModal, setLogoutModal] = useState(false);
   const abortRef = useRef(null);
 
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -383,43 +382,13 @@ function Dashboard() {
     }
   };
 
-  const clearSession = () => {
+  // Logout simples: encerra a sessao apenas no app e volta ao login. NAO desloga
+  // do Mercado Livre (evita o problema de login no mobile via app do ML).
+  const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
-  };
-
-  // Abre o modal com as duas opcoes de logout.
-  const handleLogout = () => setLogoutModal(true);
-
-  // Sai apenas do app: mantem a sessao do Mercado Livre no navegador, entao o
-  // proximo "Entrar" reconecta a mesma conta automaticamente.
-  const doAppLogout = () => {
-    clearSession();
-    setLogoutModal(false);
     navigate('/');
-  };
-
-  // Sai da conta do Mercado Livre: abre o logout do ML numa nova aba (contexto
-  // proprio do ML, sem bloqueio de cookies de terceiros) para encerrar a sessao
-  // de verdade e permitir escolher outra conta no proximo login. O app fica na
-  // tela de login. Se o popup for bloqueado, cai para o redirect de pagina.
-  const doAccountLogout = () => {
-    clearSession();
-    setLogoutModal(false);
-    // URL de logout real do Mercado Livre (o /logout do .com.br nao existe -> 404).
-    // Este endpoint passa pelo auth.mercadolivre.com.br, encerrando a sessao do OAuth.
-    // Como o ML so redireciona para dominios dele, abrimos o logout numa aba e a
-    // fechamos apos concluir, deixando o usuario na tela de login do proprio app.
-    const ML_LOGOUT = 'https://www.mercadolibre.com/jms/mlb/lgz/logout';
-    const win = window.open(ML_LOGOUT, '_blank');
-    navigate('/');
-    if (win) {
-      setTimeout(() => { try { win.close(); } catch {} }, 3000);
-    } else {
-      // Popup bloqueado: redireciona a propria pagina para o logout do ML.
-      window.location.href = ML_LOGOUT;
-    }
   };
 
   const handleSearch = (query) => {
@@ -603,70 +572,6 @@ function Dashboard() {
         />
       )}
 
-      {logoutModal && (
-        <div
-          onClick={() => setLogoutModal(false)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#FFF', borderRadius: '12px', padding: '24px',
-              width: '100%', maxWidth: '400px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            }}
-          >
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ml-text-primary)', marginBottom: '6px' }}>
-              Como deseja sair?
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '20px' }}>
-              Escolha uma opção abaixo.
-            </p>
-
-            <button
-              onClick={doAppLogout}
-              style={{
-                width: '100%', padding: '13px', borderRadius: '8px',
-                border: '1.5px solid var(--ml-border)', background: '#FFF',
-                color: 'var(--ml-text-primary)', fontSize: '14px', fontWeight: 600,
-                cursor: 'pointer', marginBottom: '10px', textAlign: 'left',
-              }}
-            >
-              Sair do aplicativo
-              <span style={{ display: 'block', fontSize: '12px', fontWeight: 400, color: 'var(--ml-text-tertiary)', marginTop: '2px' }}>
-                Você continua conectado ao Mercado Livre e volta rápido com a mesma conta.
-              </span>
-            </button>
-
-            <button
-              onClick={doAccountLogout}
-              style={{
-                width: '100%', padding: '13px', borderRadius: '8px', border: 'none',
-                background: 'var(--ml-red)', color: '#FFF', fontSize: '14px', fontWeight: 700,
-                cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              Sair da conta
-              <span style={{ display: 'block', fontSize: '12px', fontWeight: 400, color: 'rgba(255,255,255,0.9)', marginTop: '2px' }}>
-                Desconecta do Mercado Livre. No próximo acesso você poderá entrar com outra conta.
-              </span>
-            </button>
-
-            <button
-              onClick={() => setLogoutModal(false)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: '8px', border: 'none',
-                background: 'transparent', color: 'var(--ml-text-secondary)', fontSize: '13px',
-                fontWeight: 600, cursor: 'pointer', marginTop: '10px',
-              }}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
