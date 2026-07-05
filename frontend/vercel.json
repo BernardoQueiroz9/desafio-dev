@@ -6,7 +6,7 @@
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https://desafio-dev-api.onrender.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self';" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https://desafio-dev-api.onrender.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; frame-src https://*.mercadolivre.com.br https://mercadolivre.com.br;" }
       ]
     }
   ],

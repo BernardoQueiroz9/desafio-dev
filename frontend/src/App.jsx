@@ -351,12 +351,21 @@ function Dashboard() {
     navigate('/');
   };
 
-  // Sai da conta do Mercado Livre: encerra a sessao no ML tambem, para que o
-  // proximo "Entrar com Mercado Livre" peca login e permita escolher outra conta.
+  // Sai da conta do Mercado Livre: dispara o logout do ML em segundo plano
+  // (iframe oculto), para que o proximo "Entrar" permita escolher outra conta,
+  // e volta para a tela de login do app — sem deixar o usuario na pagina do ML.
   const doAccountLogout = () => {
     clearSession();
     setLogoutModal(false);
-    window.location.href = 'https://www.mercadolivre.com.br/logout';
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.src = 'https://www.mercadolivre.com.br/logout';
+      document.body.appendChild(iframe);
+      setTimeout(() => { try { iframe.remove(); } catch {} }, 4000);
+    } catch {}
+    navigate('/');
   };
 
   const handleSearch = (query) => {
