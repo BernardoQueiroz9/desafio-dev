@@ -20,6 +20,7 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const [categorySelections, setCategorySelections] = useState([]);
   const [reqAttrs, setReqAttrs] = useState([]);
   const [attrLoading, setAttrLoading] = useState(false);
+  const [imgWarning, setImgWarning] = useState('');
   const fileRef = useRef(null);
 
   const hasLeafCategory = !!formData.category_id;
@@ -70,22 +71,46 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
 
   const addImage = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
+    setImgWarning('');
     const img = new Image();
     img.onload = () => {
-      const MAX = 1200;
+      const MIN = 500;   // minimo do Mercado Livre para a foto ser exibida bem
+      const MAX = 1200;  // maximo para nao pesar
+      const origMin = Math.min(img.width, img.height);
       let { width, height } = img;
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = (height / width) * MAX; width = MAX; }
-        else { width = (width / height) * MAX; height = MAX; }
+
+      // Amplia se menor que o minimo (mantendo a proporcao).
+      if (origMin < MIN) {
+        const scale = MIN / origMin;
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
       }
+      // Reduz se maior que o maximo.
+      const maxSide = Math.max(width, height);
+      if (maxSide > MAX) {
+        const scale = MAX / maxSide;
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      // Fundo branco: resolve transparencia de PNG e atende a foto principal.
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      if (origMin < 300) {
+        setImgWarning('Imagem pequena (menos de 300px): a qualidade pode ficar ruim ou o Mercado Livre pode não exibi-la. Prefira uma foto de pelo menos 500x500.');
+      } else if (origMin < MIN) {
+        setImgWarning('Imagem ampliada para atender o mínimo do Mercado Livre (500px). Para melhor qualidade, use uma foto maior.');
+      }
       setFormData({ ...formData, images: [...images, dataUrl] });
     };
+    img.onerror = () => setImgWarning('Não foi possível ler esta imagem. Tente outro arquivo (JPG ou PNG).');
     const reader = new FileReader();
     reader.onload = (e) => { img.src = e.target.result; };
     reader.readAsDataURL(file);
@@ -179,7 +204,12 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
             <input ref={fileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { addImage(f); e.target.value = ''; } }} style={{ display: 'none' }} />
             {images.length > 0 && (
               <p style={{ fontSize: '11px', color: colors.textTer, marginTop: '6px' }}>
-                {images.length}/5 imagens
+                {images.length}/5 imagens · use fotos quadradas de pelo menos 500×500, fundo claro, sem texto
+              </p>
+            )}
+            {imgWarning && (
+              <p style={{ fontSize: '11px', color: '#856404', background: '#FFF3CD', border: '1px solid #FFEAA7', borderRadius: '4px', padding: '6px 8px', marginTop: '6px' }}>
+                {imgWarning}
               </p>
             )}
           </div>,
