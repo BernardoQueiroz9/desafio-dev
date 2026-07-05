@@ -270,7 +270,14 @@ async function validateItem(accessToken, payload) {
       validateStatus: status => [200, 204, 400, 422].includes(status),
     });
     if (res.status === 200 || res.status === 204) return null;
-    return res.data;
+    const data = res.data || {};
+    const causes = Array.isArray(data.cause) ? data.cause : [];
+    // Warnings (type 'warning') NAO impedem a criacao — so bloqueamos causas
+    // do tipo 'error'. Ex.: 'shipping.lost_me1_by_user' e apenas um aviso.
+    const blocking = causes.filter(c => c && c.type && c.type !== 'warning');
+    if (causes.length > 0 && blocking.length === 0) return null;
+    if (blocking.length > 0) return { ...data, cause: blocking };
+    return data;
   });
 }
 
