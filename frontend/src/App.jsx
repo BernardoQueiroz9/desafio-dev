@@ -166,6 +166,7 @@ function Dashboard() {
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [sellerActive, setSellerActive] = useState(true);
+  const [logoutModal, setLogoutModal] = useState(false);
   const abortRef = useRef(null);
 
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -333,11 +334,29 @@ function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
+  const clearSession = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
+  };
+
+  // Abre o modal com as duas opcoes de logout.
+  const handleLogout = () => setLogoutModal(true);
+
+  // Sai apenas do app: mantem a sessao do Mercado Livre no navegador, entao o
+  // proximo "Entrar" reconecta a mesma conta automaticamente.
+  const doAppLogout = () => {
+    clearSession();
+    setLogoutModal(false);
     navigate('/');
+  };
+
+  // Sai da conta do Mercado Livre: encerra a sessao no ML tambem, para que o
+  // proximo "Entrar com Mercado Livre" peca login e permita escolher outra conta.
+  const doAccountLogout = () => {
+    clearSession();
+    setLogoutModal(false);
+    window.location.href = 'https://www.mercadolivre.com.br/logout';
   };
 
   const handleSearch = (query) => {
@@ -435,7 +454,7 @@ function Dashboard() {
         )}
 
         {view === 'grid' && (
-          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }} className="page-enter">
+          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }} className="page-enter grid-main">
             <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
               {apiError && !loading ? (
                 <ErrorScreen message={apiError} onRetry={() => loadAds()} />
@@ -474,7 +493,7 @@ function Dashboard() {
         )}
 
         {view === 'my-ads' && (
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
+          <div className="card-outer" style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="myads-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '920px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
               <MyAdsPage onEdit={handleEditAd} onNew={() => {
                 setFormData({ id: null, title: '', price: '', available_quantity: '', image: '', images: [], description: '', free_shipping: false, is_full: false, category_id: '' });
@@ -485,7 +504,7 @@ function Dashboard() {
         )}
 
         {view === 'form' && (
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
+          <div className="card-outer" style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '32px 24px', background: 'var(--ml-yellow)', minHeight: '100%' }}>
             <div className="form-card" style={{ background: '#FFF', borderRadius: '12px', padding: '32px 40px', width: '100%', maxWidth: '660px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', alignSelf: 'flex-start' }}>
               {apiError ? (
                 <ErrorScreen message={apiError} details={apiErrorDetails} onRetry={() => { setApiError(null); setApiErrorDetails(null); }} />
@@ -518,6 +537,71 @@ function Dashboard() {
           onAcceptAll={handleSyncAcceptAll}
           onClose={() => { setSyncData(null); fetchAds(); }}
         />
+      )}
+
+      {logoutModal && (
+        <div
+          onClick={() => setLogoutModal(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#FFF', borderRadius: '12px', padding: '24px',
+              width: '100%', maxWidth: '400px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ml-text-primary)', marginBottom: '6px' }}>
+              Como deseja sair?
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--ml-text-tertiary)', marginBottom: '20px' }}>
+              Escolha uma opção abaixo.
+            </p>
+
+            <button
+              onClick={doAppLogout}
+              style={{
+                width: '100%', padding: '13px', borderRadius: '8px',
+                border: '1.5px solid var(--ml-border)', background: '#FFF',
+                color: 'var(--ml-text-primary)', fontSize: '14px', fontWeight: 600,
+                cursor: 'pointer', marginBottom: '10px', textAlign: 'left',
+              }}
+            >
+              Sair do aplicativo
+              <span style={{ display: 'block', fontSize: '12px', fontWeight: 400, color: 'var(--ml-text-tertiary)', marginTop: '2px' }}>
+                Você continua conectado ao Mercado Livre e volta rápido com a mesma conta.
+              </span>
+            </button>
+
+            <button
+              onClick={doAccountLogout}
+              style={{
+                width: '100%', padding: '13px', borderRadius: '8px', border: 'none',
+                background: 'var(--ml-red)', color: '#FFF', fontSize: '14px', fontWeight: 700,
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              Sair da conta
+              <span style={{ display: 'block', fontSize: '12px', fontWeight: 400, color: 'rgba(255,255,255,0.9)', marginTop: '2px' }}>
+                Desconecta do Mercado Livre. No próximo acesso você poderá entrar com outra conta.
+              </span>
+            </button>
+
+            <button
+              onClick={() => setLogoutModal(false)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '8px', border: 'none',
+                background: 'transparent', color: 'var(--ml-text-secondary)', fontSize: '13px',
+                fontWeight: 600, cursor: 'pointer', marginTop: '10px',
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

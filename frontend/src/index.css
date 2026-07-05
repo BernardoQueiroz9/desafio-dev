@@ -295,6 +295,16 @@ img {
     padding: 20px 16px !important;
   }
 
+  /* Menos padding lateral para os botoes/conteudo nao serem cortados na borda */
+  .card-outer {
+    padding: 16px 12px !important;
+  }
+
+  /* Espaco extra no rodapao da grade para o botao flutuante nao cobrir os cards */
+  .grid-main {
+    padding: 16px 12px 96px !important;
+  }
+
   .form-row {
     flex-direction: column !important;
   }
