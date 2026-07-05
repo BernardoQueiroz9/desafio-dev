@@ -358,12 +358,15 @@ function Dashboard() {
   const doAccountLogout = () => {
     clearSession();
     setLogoutModal(false);
-    const win = window.open('https://www.mercadolivre.com.br/logout', '_blank', 'noopener');
+    // URL de logout real do Mercado Livre (o /logout do .com.br nao existe -> 404).
+    // Este endpoint passa pelo auth.mercadolivre.com.br, encerrando a sessao do OAuth.
+    const ML_LOGOUT = 'https://www.mercadolibre.com/jms/mlb/lgz/logout';
+    const win = window.open(ML_LOGOUT, '_blank', 'noopener');
     if (win) {
       navigate('/');
     } else {
       // Popup bloqueado: redireciona a propria pagina para o logout do ML.
-      window.location.href = 'https://www.mercadolivre.com.br/logout';
+      window.location.href = ML_LOGOUT;
     }
   };
 
