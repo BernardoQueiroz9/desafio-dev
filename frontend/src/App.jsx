@@ -401,6 +401,7 @@ function Dashboard() {
         userName={userName}
         navTarget={navTarget}
         navLabel={navLabel}
+        myAdsTarget={view === 'product-detail' ? '/dashboard/meus-anuncios' : null}
       />
 
       {!sellerActive && (

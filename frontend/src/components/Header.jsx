@@ -103,7 +103,7 @@ const styles = {
   },
 };
 
-export default function Header({ onSearch, searchValue, onLogout, userName, navTarget, navLabel }) {
+export default function Header({ onSearch, searchValue, onLogout, userName, navTarget, navLabel, myAdsTarget }) {
   const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchValue || '');
   const [hoverNav, setHoverNav] = useState({});
@@ -173,6 +173,29 @@ export default function Header({ onSearch, searchValue, onLogout, userName, navT
               )}
             </span>
           </button>
+
+          {myAdsTarget && (
+            <button
+              onClick={() => navigate(myAdsTarget)}
+              style={{
+                ...styles.navBtn,
+                background: hoverNav.myads ? 'rgba(0,0,0,0.06)' : 'transparent',
+              }}
+              onMouseEnter={() => setHoverNav(p => ({ ...p, myads: true }))}
+              onMouseLeave={() => setHoverNav(p => ({ ...p, myads: false }))}
+              title="Meus Anúncios"
+            >
+              <span className="header-nav-text">Meus Anúncios</span>
+              <span className="header-nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+              </span>
+            </button>
+          )}
 
           <span style={styles.userName} className="header-username">{userName}</span>
 
