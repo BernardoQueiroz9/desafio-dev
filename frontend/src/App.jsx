@@ -34,12 +34,8 @@ function Login() {
   const location = useLocation();
   const [error, setError] = useState('');
 
-  // Pre-aquece o backend (Render hiberna e leva ~20s+ para acordar). Assim,
-  // quando o usuario clicar em "Entrar", o servidor ja esta quente e o login
-  // nao estoura o tempo do codigo de troca no mobile.
   useEffect(() => {
     api.get('/health').catch(() => {});
-    // Se o usuario foi devolvido ao login por sessao expirada (401), mostra o motivo.
     const authError = sessionStorage.getItem('authError');
     if (authError) {
       setError(authError);
@@ -47,12 +43,6 @@ function Login() {
     }
   }, []);
 
-  // No mobile (Android), o login pode voltar do app do Mercado Livre numa aba
-  // diferente da original. As abas do Chrome compartilham o localStorage, entao
-  // quando OUTRA aba salva o token (evento 'storage'), esta aba detecta e vai
-  // para o dashboard. So escutamos 'storage' (dispara apenas na escrita real do
-  // token em outra aba) — nada de focus/visibilitychange, que disparavam sempre
-  // e, com token antigo, causavam redirecionamentos indevidos.
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === 'token' && e.newValue && localStorage.getItem('userId')) {
@@ -67,12 +57,8 @@ function Login() {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
 
-    // Troca o code de uso unico pelo JWT (token nunca trafega na URL).
     if (code) {
-      // Limpa o code da URL imediatamente (nao deixa no historico).
       window.history.replaceState({}, '', '/');
-      // A troca do code novo e sempre autoritativa: limpamos qualquer token
-      // antigo/invalido antes, para o novo login sobrescrever de forma limpa.
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       localStorage.removeItem('userName');
@@ -85,8 +71,6 @@ function Login() {
             localStorage.setItem('userId', userId);
             if (userName) localStorage.setItem('userName', userName);
           } catch {}
-          // Confirma que o armazenamento persistiu. Modo privado/anonimo (ex.:
-          // Safari iOS) bloqueia localStorage, o que causaria 401 no dashboard.
           if (localStorage.getItem('token') !== token) {
             setError('Seu navegador está bloqueando o armazenamento deste site (modo privado/anônimo?). Saia do modo privado ou permita cookies/armazenamento e tente novamente.');
             return;
@@ -317,8 +301,6 @@ function Dashboard() {
     loadAds(q, f);
   };
 
-  // Sincroniza os anuncios com o Mercado Livre (aplica edicoes/remocoes feitas
-  // no ML) e recarrega a grade de pesquisa.
   const handleRefresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -383,7 +365,6 @@ function Dashboard() {
       if (formData.id) {
         await api.put(`/ads/${formData.id}`, payload);
       } else {
-        // Chave de idempotencia: evita anuncio duplicado se a requisicao for reenviada.
         if (!payload.idempotency_key) {
           payload.idempotency_key = (crypto.randomUUID?.() || String(Date.now()) + Math.random());
         }
@@ -400,8 +381,6 @@ function Dashboard() {
     }
   };
 
-  // Logout simples: encerra a sessao apenas no app e volta ao login. NAO desloga
-  // do Mercado Livre (evita o problema de login no mobile via app do ML).
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');

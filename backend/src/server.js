@@ -33,8 +33,6 @@ async function connectDb() {
 async function start() {
   await connectDb();
 
-  // Sincroniza indices TTL (ex.: AuthCode passou de 60s para 300s) para que a
-  // mudanca de expireAfterSeconds seja aplicada no indice ja existente no Atlas.
   try {
     const AuthCode = require('./models/AuthCode');
     const OAuthState = require('./models/OAuthState');

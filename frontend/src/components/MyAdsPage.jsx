@@ -22,8 +22,6 @@ export default function MyAdsPage({ onEdit, onNew, fetchAds }) {
     setLoading(true);
     setError(null);
     try {
-      // Sincroniza com o Mercado Livre antes de listar: reflete edicoes feitas
-      // no ML e remove anuncios que foram fechados/excluidos por la. Best-effort.
       await api.post('/ads/refresh').catch(() => {});
       const res = await api.get('/ads', { params: { mine: true } });
       setMyAds(res.data);

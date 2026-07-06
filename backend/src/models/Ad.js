@@ -17,7 +17,6 @@ const AdSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 AdSchema.index({ user: 1, title: 1 });
-// Impede anuncios duplicados por retry (sparse: nulls nao conflitam).
 AdSchema.index({ user: 1, idempotency_key: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Ad', AdSchema);

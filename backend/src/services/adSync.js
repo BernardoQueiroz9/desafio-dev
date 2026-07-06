@@ -1,8 +1,6 @@
 const Ad = require('../models/Ad');
 const ml = require('./mercadolibre');
 
-// Aplica o estado de um item do ML no registro local. Retorna 'removed',
-// 'updated' ou 'unchanged'. 'closed'/'inactive' => remove o registro local.
 async function applyItemToAd(ad, item) {
   if (item.status === 'closed' || item.status === 'inactive') {
     await Ad.deleteOne({ _id: ad._id });
@@ -18,7 +16,6 @@ async function applyItemToAd(ad, item) {
   return 'unchanged';
 }
 
-// Sincroniza TODOS os anuncios do usuario com o estado atual do ML.
 async function applyMlStateToLocalAds(userId, accessToken) {
   const ads = await Ad.find({ user: userId });
   let updated = 0, removed = 0;
@@ -30,15 +27,12 @@ async function applyMlStateToLocalAds(userId, accessToken) {
       if (r === 'updated') updated++;
       else if (r === 'removed') removed++;
     } catch (err) {
-      // 404 definitivo = item nao existe mais no ML -> remove local.
-      // Erros transitorios (rede/rate limit) NAO removem nada.
       if (err.response?.status === 404) { await Ad.deleteOne({ _id: ad._id }); removed++; }
     }
   }
   return { updated, removed, checked: ads.length };
 }
 
-// Sincroniza UM anuncio (por ml_id) — usado pelos webhooks de notificacao.
 async function syncSingleAdByMlId(mlId, accessToken) {
   const ad = await Ad.findOne({ ml_id: mlId });
   if (!ad) return 'not_found';

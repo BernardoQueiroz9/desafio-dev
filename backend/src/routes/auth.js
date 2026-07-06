@@ -34,7 +34,6 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// Inicia o fluxo OAuth: gera state + PKCE verifier e persiste no Mongo (TTL ~5min).
 router.get('/ml/login', async (req, res) => {
   try {
     const redirectUri = config.ml.redirectUri;
@@ -52,8 +51,6 @@ router.get('/ml/login', async (req, res) => {
   }
 });
 
-// Callback do ML: valida o state (uso unico), troca o code por tokens e
-// entrega ao frontend um `code` opaco de uso unico (nunca o JWT na URL).
 router.get('/ml/callback', async (req, res) => {
   const frontendUrl = getFrontendUrl(req);
   try {
@@ -63,7 +60,6 @@ router.get('/ml/callback', async (req, res) => {
     if (!stored) {
       return res.redirect(`${frontendUrl}/?error=invalid_state`);
     }
-    // Checagem explicita de idade (nao confiar so no TTL, que varre ~1x/min).
     if (Date.now() - new Date(stored.createdAt).getTime() > 5 * 60 * 1000) {
       return res.redirect(`${frontendUrl}/?error=invalid_state`);
     }
@@ -118,7 +114,6 @@ router.get('/ml/callback', async (req, res) => {
   }
 });
 
-// Troca o code de uso unico pelo JWT. O code e apagado na troca (uso unico).
 router.post('/exchange', async (req, res) => {
   const { code } = req.body || {};
   if (!code || typeof code !== 'string') {
@@ -132,7 +127,6 @@ router.post('/exchange', async (req, res) => {
   res.json({ token, userId: String(entry.userId), userName: entry.userName });
 });
 
-// Perfil do usuario — resposta enxuta (allowlist), sem dump do perfil ML.
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select('name email ml_user_id ml_nickname ml_access_token');
@@ -145,9 +139,6 @@ router.get('/me', authMiddleware, async (req, res) => {
 
     const sellAllow = mlProfile?.status?.sell?.allow;
     const listAllow = mlProfile?.status?.list?.allow;
-    // So marcamos "nao vendedora" quando o perfil do ML carregou E diz
-    // explicitamente que a conta nao pode vender/anunciar. Se o perfil nao
-    // carregou ou os campos vierem indefinidos, NAO exibimos o alerta.
     const ml_seller = mlProfile ? !(sellAllow === false || listAllow === false) : true;
 
     res.json({
@@ -164,15 +155,12 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// Cria um usuario de teste do ML (habilitado a vender) usando o token do dono
-// da aplicacao (usuario logado). Retorna nickname + senha para login de teste.
 router.post('/ml/test-user', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     const token = await user.getValidToken();
     const testUser = await ml.createTestUser(token, config.ml.siteId);
-    // Retorna o objeto completo: o login do ML usa o e-mail gerado do test user.
     res.json(testUser);
   } catch (err) {
     if (handleReauth(res, err)) return;

@@ -1,9 +1,5 @@
-// Remove os anuncios de um usuario especifico (por _id), com dry-run por padrao.
-// Uso:
-//   node src/remove-daniel-ads.js            -> lista usuarios "Daniel" (dry-run)
-//   node src/remove-daniel-ads.js <userId> --confirm  -> apaga os anuncios daquele usuario
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '1.1.1.1']); // resolve SRV pelo DNS publico
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 require('dotenv').config();
 const mongoose = require('mongoose');
 
@@ -28,7 +24,6 @@ async function main() {
   const confirm = process.argv.includes('--confirm');
 
   if (!userId) {
-    // Dry-run: lista todos os "Daniel" e seus anuncios.
     const users = await User.find({ name: { $regex: /daniel/i } }).select('name email ml_user_id');
     console.log(`\nUsuarios que casam com /daniel/i: ${users.length}`);
     for (const u of users) {

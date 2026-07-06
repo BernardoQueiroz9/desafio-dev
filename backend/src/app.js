@@ -8,10 +8,6 @@ const adsRoutes = require('./routes/ads');
 const categoriesRoutes = require('./routes/categories');
 const notificationsRoutes = require('./routes/notifications');
 
-/**
- * Cria e configura a aplicacao Express (sem escutar porta nem conectar DB).
- * Facilita testes de integracao (Supertest) e mantem o bootstrap em server.js.
- */
 function createApp() {
   const app = express();
 
@@ -24,13 +20,11 @@ function createApp() {
 
   app.use(cors({
     origin: (origin, cb) => {
-      // Sem origin (curl/health checks) e origens da allowlist sao permitidas.
       if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
       cb(null, false);
     },
   }));
 
-  // A API nao serve HTML; CSP restritiva e sem necessidade de recursos cross-site.
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {

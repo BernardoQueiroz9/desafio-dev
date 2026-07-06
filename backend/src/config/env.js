@@ -1,10 +1,3 @@
-/**
- * Validacao e centralizacao de variaveis de ambiente (fail-fast).
- *
- * Em producao, a ausencia de qualquer variavel obrigatoria encerra o processo
- * com mensagem clara — nunca subimos com o JWT_SECRET default inseguro.
- * Em desenvolvimento/teste, aplicamos defaults apenas para nao travar o fluxo local.
- */
 require('dotenv').config();
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -36,7 +29,6 @@ const config = {
   isProd,
   isTest,
   port: process.env.PORT || 3000,
-  // Em dev/test aceitamos o default; validate() ja garantiu que em prod ha um valor real.
   jwtSecret: process.env.JWT_SECRET || DEV_JWT_SECRET,
   mongoUri: process.env.MONGO_URI || '',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',

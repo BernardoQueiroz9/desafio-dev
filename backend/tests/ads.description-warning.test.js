@@ -1,4 +1,3 @@
-// Simula o ML: item criado com sucesso, mas setDescription falha (FR-006).
 jest.mock('../src/services/mercadolibre', () => ({
   getAvailableListingTypes: jest.fn(async () => [{ id: 'gold_special' }]),
   checkAvailableListingType: jest.fn(async () => ({ id: 'gold_special' })),

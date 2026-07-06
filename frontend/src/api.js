@@ -21,9 +21,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Qualquer 401 significa sessao invalida (token do app expirado/invalido, ou
-// reautorizacao do ML necessaria). Limpamos o storage e voltamos ao login,
-// evitando que o dashboard fique preso mostrando "nao foi possivel carregar".
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -32,7 +29,6 @@ api.interceptors.response.use(
       localStorage.removeItem('userId');
       localStorage.removeItem('userName');
       if (window.location.pathname !== '/') {
-        // Registra o motivo para a tela de login exibir (evita "voltar ao login" silencioso).
         const code = err.response?.data?.code;
         const backendMsg = err.response?.data?.error || '';
         const reason = code === 'ML_REAUTH_REQUIRED'

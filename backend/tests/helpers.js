@@ -29,7 +29,6 @@ function app() {
   return createApp();
 }
 
-/** Gera um JWT valido para autenticar requisicoes de teste. */
 function tokenFor(user) {
   return jwt.sign(
     { userId: user._id.toString(), mlUserId: String(user.ml_user_id) },

@@ -25,7 +25,6 @@ describe('GET /api/auth/me', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('name', 'Fulano');
     expect(res.body).toHaveProperty('ml_user_id', '999');
-    // Campos sensiveis / dump nao devem existir.
     expect(res.body._dump).toBeUndefined();
     expect(res.body.ml_access_token).toBeUndefined();
     expect(res.body.ml_refresh_token).toBeUndefined();

@@ -15,7 +15,6 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, price, available_quantity, images, description, category_id, attributes, free_shipping, is_full, idempotency_key } = req.body;
 
-    // Guard de idempotencia: um retry com a mesma chave nao recria o anuncio.
     if (idempotency_key) {
       const existing = await Ad.findOne({ user: req.userId, idempotency_key });
       if (existing) {
@@ -47,24 +46,17 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const accessToken = await user.getValidToken();
 
-    // Escolhe o melhor tipo de anuncio DISPONIVEL para esta categoria+conta,
-    // em vez de exigir gold_special fixo (que pode nao existir p/ contas de
-    // teste ou certas categorias). Preferencia: Classico > Premium > pagos > gratis.
     const availableTypes = await ml.getAvailableListingTypes(accessToken, user.ml_user_id, category_id);
     const availableIds = availableTypes.map(t => t.id || t.listing_type_id).filter(Boolean);
     const PREFERENCE = ['gold_special', 'gold_pro', 'gold', 'silver', 'bronze', 'free'];
     let listingType = PREFERENCE.find(p => availableIds.includes(p)) || availableIds[0];
     if (!listingType) {
-      // available_listing_types veio vazio (limitacao do endpoint/escopo). NAO
-      // bloqueamos: usamos o Classico como padrao e deixamos o proprio ML
-      // validar/recusar, para que o erro real venha de /items/validate ou /items.
       listingType = 'gold_special';
       console.error('available_listing_types vazio para', category_id, '- usando fallback', listingType);
     } else {
       console.error('listing_type escolhido:', listingType, 'de', JSON.stringify(availableIds));
     }
 
-    // pictures = enviado ao ML (usa o id da imagem); savedImages = urls p/ exibir.
     let pictures = [];
     let savedImages = [];
     for (const img of images) {
@@ -81,9 +73,6 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: `${pictures.length} de ${images.length} imagens foram enviadas. Todas as imagens precisam ser válidas.` });
     }
 
-    // O formulario ja envia os atributos obrigatorios preenchidos pelo usuario.
-    // Se nao vierem, tentamos auto-preencher os de lista; o que faltar sera
-    // apontado pelo /items/validate do ML (nao bloqueamos aqui).
     let itemAttributes = Array.isArray(attributes) ? attributes.filter(a => a && a.id) : [];
     if (itemAttributes.length === 0) {
       try {
@@ -182,7 +171,6 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (error) {
     if (handleReauth(res, error)) return;
     const errData = error.response?.data || {};
-    // Log estruturado no servidor para diagnostico (nao vaza ao usuario).
     console.error('Erro ao criar anuncio:', JSON.stringify({
       status: error.response?.status,
       ml_error: errData.error,
@@ -232,9 +220,6 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Diagnostico: mostra quais tipos de anuncio a conta do usuario tem disponiveis
-// em cada categoria testada. Ajuda a distinguir categoria restrita de problema
-// de conta. Ex.: GET /api/ads/debug/listing-types?ids=MLB1055,MLB437616
 router.get('/debug/listing-types', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -253,8 +238,6 @@ router.get('/debug/listing-types', authMiddleware, async (req, res) => {
       }
     }
 
-    // Perfil do ML: status.list.allow diz se a conta pode anunciar, e os codes
-    // dizem o motivo quando nao pode (ex.: documentacao/cartao pendente).
     let profile = null;
     try {
       const p = await ml.getUser(token);
@@ -297,8 +280,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Sincronizacao automatica: aplica no app o estado atual do ML (chamado ao
-// abrir "Meus Anuncios"). Reflete edicoes e remove anuncios fechados no ML.
 router.post('/refresh', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -379,8 +360,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       };
     }
 
-    // Reprocessa imagens: novas (data URL) sao enviadas ao ML; URLs ja
-    // existentes sao mantidas. O ML substitui o conjunto de fotos do item.
     let savedImages = null;
     if (images !== undefined && Array.isArray(images)) {
       const mlPictures = [];
@@ -444,13 +423,10 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         const user = await User.findById(req.userId);
         if (user) {
           const accessToken = await user.getValidToken();
-          // Excluir no ML exige 2 passos: 1) fechar o item; 2) marcar deleted.
           await ml.updateItem(accessToken, ad.ml_id, { status: 'closed' });
           try {
             await ml.updateItem(accessToken, ad.ml_id, { deleted: true });
           } catch (delErr) {
-            // Itens com vendas/pendencias nao podem ser excluidos (regra do ML);
-            // nesse caso permanecem apenas fechados.
             console.error('ML: item fechado, mas nao pode ser excluido:', delErr.response?.data || delErr.message);
           }
         }

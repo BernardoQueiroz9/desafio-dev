@@ -1,6 +1,5 @@
 const ml = require('../src/services/mercadolibre');
 
-// Testa o mapeamento de erros do ML para mensagens acionaveis pt-BR (V11).
 describe('mapMlError', () => {
   test('cadastro de vendedor incompleto (address_pending)', () => {
     const msg = ml.mapMlError({ error: 'seller.unable_to_list', cause: [{ code: 'address_pending' }] });

@@ -130,9 +130,6 @@ async function uploadPicture(accessToken, imageDataUrl) {
       });
 
       const data = res.data || {};
-      // A API /pictures do ML retorna { id, variations: [{ url, secure_url }] }.
-      // Preferimos o `id` (jeito recomendado p/ associar ao item); a URL serve
-      // para exibir a imagem localmente.
       const variation = data.variations?.[0] || data.variants?.[0] || {};
       const url = variation.secure_url || variation.url || data.secure_url || data.url || null;
       if (data.id || url) {
@@ -149,9 +146,6 @@ async function uploadPicture(accessToken, imageDataUrl) {
 }
 
 async function createItem(accessToken, data) {
-  // retries=1: a criacao NAO e reexecutada em falha de rede. Um timeout apos o
-  // ML ja ter criado o item duplicaria o anuncio no marketplace. A idempotencia
-  // fica a cargo do guard por idempotency_key no banco (routes/ads.js).
   return callWithRetry(async () => {
     const res = await axios.post(`${API_BASE}/items`, data, {
       headers: { ...BASE_HEADERS, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -211,8 +205,6 @@ async function getCategoryRequiredAttributes(accessToken, categoryId) {
   });
 }
 
-// Retorna a lista bruta de tipos de anuncio disponiveis para o usuario+categoria.
-// O parametro correto da API do ML e `category_id` (nao `category`).
 async function getAvailableListingTypes(accessToken, userId, categoryId) {
   const res = await callWithRetry(async () => {
     return await axios.get(
@@ -225,8 +217,6 @@ async function getAvailableListingTypes(accessToken, userId, categoryId) {
   return types;
 }
 
-// Schema dos atributos OBRIGATORIOS de uma categoria, para o formulario montar
-// os campos que o usuario precisa preencher (texto livre ou selecao de lista).
 async function getRequiredAttributesSchema(accessToken, categoryId) {
   return callWithRetry(async () => {
     const res = await axios.get(`${API_BASE}/categories/${categoryId}/attributes`, {
@@ -235,7 +225,7 @@ async function getRequiredAttributesSchema(accessToken, categoryId) {
     const all = Array.isArray(res.data) ? res.data : [];
     return all
       .filter(attr => attr.tags?.required || attr.tags?.catalog_required || attr.tags?.new_required)
-      .filter(attr => attr.id !== 'ITEM_CONDITION') // condicao ja e definida como 'new'
+      .filter(attr => attr.id !== 'ITEM_CONDITION')
       .map(attr => ({
         id: attr.id,
         name: attr.name || attr.id,
@@ -272,8 +262,6 @@ async function validateItem(accessToken, payload) {
     if (res.status === 200 || res.status === 204) return null;
     const data = res.data || {};
     const causes = Array.isArray(data.cause) ? data.cause : [];
-    // Warnings (type 'warning') NAO impedem a criacao — so bloqueamos causas
-    // do tipo 'error'. Ex.: 'shipping.lost_me1_by_user' e apenas um aviso.
     const blocking = causes.filter(c => c && c.type && c.type !== 'warning');
     if (causes.length > 0 && blocking.length === 0) return null;
     if (blocking.length > 0) return { ...data, cause: blocking };
@@ -307,8 +295,6 @@ const SELLER_ERROR_MAP = {
   },
 };
 
-// Padroes de mensagem/cause do ML mapeados para orientacoes acionaveis em pt-BR.
-// Cada entrada testa o texto agregado (error + causes + message) em minusculas.
 const GENERIC_PATTERNS = [
   { match: /listing_type|available_listing_type|not.*allowed.*category|gold_special/, msg: 'Esta categoria não aceita o tipo de anúncio Clássico para a sua conta. Escolha outra categoria.' },
   { match: /pictures|imagem|image|picture/, msg: 'Uma das imagens foi rejeitada pelo Mercado Livre (formato ou tamanho). Envie outra imagem.' },
@@ -324,7 +310,6 @@ function mapMlError(errData) {
   const errorCode = errData.error;
   const causes = (errData.cause || []).map(c => typeof c === 'string' ? c : c.code || c.message || '');
 
-  // 1) Mapa curado de erros de vendedor (cadastro incompleto etc.)
   const errorMap = SELLER_ERROR_MAP[errorCode];
   if (errorMap) {
     for (const cause of causes) {
@@ -332,13 +317,11 @@ function mapMlError(errData) {
     }
   }
 
-  // 2) Padroes gerais por palavra-chave no conteudo agregado do erro.
   const haystack = [errorCode, errData.message, ...causes].filter(Boolean).join(' ').toLowerCase();
   for (const { match, msg } of GENERIC_PATTERNS) {
     if (match.test(haystack)) return msg;
   }
 
-  // 3) Fallback: mensagem do ML + causas, sem vazar payload tecnico bruto.
   const causeStr = causes.filter(Boolean).join('; ');
   if (causeStr) {
     return (errData.message || 'O Mercado Livre recusou o anúncio') + ' (' + causeStr + ')';
@@ -346,8 +329,6 @@ function mapMlError(errData) {
   return errData.message || 'Não foi possível publicar o anúncio no Mercado Livre. Revise os dados e tente novamente.';
 }
 
-// Cria um usuario de teste do ML (habilitado a vender) usando o token do dono
-// da aplicacao. Usado para demonstrar a publicacao sem expor a conta real.
 async function createTestUser(accessToken, siteId) {
   return callWithRetry(async () => {
     const res = await axios.post(

@@ -142,8 +142,6 @@ img {
   width: 80%;
 }
 
-/* ─── Sidebar responsive ─── */
-
 .menu-toggle-btn {
   display: none;
   position: fixed;
@@ -180,8 +178,6 @@ img {
   z-index: 50;
 }
 
-/* ─── Header ─── */
-
 .header-inner {
   display: flex;
   align-items: center;
@@ -201,14 +197,11 @@ img {
   flex-shrink: 0;
 }
 
-/* ─── Mobile (<769) ─── */
-
 @media (max-width: 768px) {
   body {
     overflow-x: hidden;
   }
 
-  /* Sidebar */
   .menu-toggle-btn {
     display: flex;
   }
@@ -235,7 +228,6 @@ img {
     display: flex !important;
   }
 
-  /* Header */
   header {
     overflow-x: hidden;
   }
@@ -282,7 +274,6 @@ img {
     display: none;
   }
 
-  /* Cards */
   .login-card {
     padding: 28px 20px !important;
   }
@@ -295,12 +286,10 @@ img {
     padding: 20px 16px !important;
   }
 
-  /* Menos padding lateral para os botoes/conteudo nao serem cortados na borda */
   .card-outer {
     padding: 16px 12px !important;
   }
 
-  /* Espaco extra no rodapao da grade para o botao flutuante nao cobrir os cards */
   .grid-main {
     padding: 16px 12px 96px !important;
   }
@@ -351,8 +340,6 @@ img {
   }
 }
 
-/* ─── Mobile small (<480) ─── */
-
 @media (max-width: 480px) {
   .product-grid {
     grid-template-columns: 1fr !important;
@@ -363,15 +350,11 @@ img {
   }
 }
 
-/* ─── Mobile muito estreito (<389): esconde "Sair" do header, mantem "Voltar" ─── */
-
 @media (max-width: 388px) {
   .header-logout-btn {
     display: none !important;
   }
 }
-
-/* ─── Desktop (≥769) ─── */
 
 @media (min-width: 769px) {
   .sidebar-desktop {

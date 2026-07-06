@@ -25,12 +25,11 @@ UserSchema.methods.getValidToken = async function () {
     try {
       data = await ml.refreshAccessToken(this.ml_refresh_token);
     } catch (err) {
-      // Refresh recusado (refresh_token invalido/revogado) -> exigir novo login.
       const status = err.response?.status;
       if (status === 400 || status === 401) {
         throw new MlReauthRequired();
       }
-      throw err; // erros transitorios (rede/5xx) sobem como estao
+      throw err;
     }
     this.ml_access_token = data.access_token;
     if (data.refresh_token) this.ml_refresh_token = data.refresh_token;
@@ -40,7 +39,6 @@ UserSchema.methods.getValidToken = async function () {
   return this.ml_access_token;
 };
 
-// Nunca serializar tokens/segredos em respostas JSON.
 UserSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.ml_access_token;

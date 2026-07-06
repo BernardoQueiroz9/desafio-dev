@@ -32,8 +32,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const hasLeafCategory = !!formData.category_id;
   const images = formData.images || [];
 
-  // Ao escolher a categoria, busca os atributos obrigatorios e as regras/limites
-  // que o Mercado Livre impoe, para montar campos e alertas/bloqueios.
   useEffect(() => {
     if (!formData.category_id) { setReqAttrs([]); setRules(null); return; }
     let cancelled = false;
@@ -83,18 +81,16 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
     setImgWarning('');
     const img = new Image();
     img.onload = () => {
-      const MIN = 500;   // minimo do Mercado Livre para a foto ser exibida bem
-      const MAX = 1200;  // maximo para nao pesar
+      const MIN = 500;
+      const MAX = 1200;
       const origMin = Math.min(img.width, img.height);
       let { width, height } = img;
 
-      // Amplia se menor que o minimo (mantendo a proporcao).
       if (origMin < MIN) {
         const scale = MIN / origMin;
         width = Math.round(width * scale);
         height = Math.round(height * scale);
       }
-      // Reduz se maior que o maximo.
       const maxSide = Math.max(width, height);
       if (maxSide > MAX) {
         const scale = MAX / maxSide;
@@ -106,7 +102,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      // Fundo branco: resolve transparencia de PNG e atende a foto principal.
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
@@ -161,7 +156,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
     outline: 'none', background: 'transparent', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
-  // --- Validacoes/alertas espelhando as regras do Mercado Livre ---
   const priceNum = (() => {
     const raw = String(formData.price || '').replace(/\./g, '').replace(',', '.');
     const n = parseFloat(raw);
@@ -170,9 +164,6 @@ export default function AdFormPage({ formData, setFormData, onSubmit, onCancel }
   const maxTitle = rules?.max_title_length || 60;
   const maxPics = rules?.max_pictures || 6;
   const titleLen = (formData.title || '').length;
-  // Bloqueia SO com sinais confiaveis: a propria categoria nao permitir anuncio.
-  // available_listing_types e nao-confiavel (vem vazio ate p/ categorias validas),
-  // entao restricoes por conta ficam por conta do erro real do ML ao publicar.
   const cannotList = !!rules && rules.listing_allowed === false;
   const priceBelowMin = !!rules && priceNum != null && rules.min_price != null && priceNum < rules.min_price;
   const priceAboveMax = !!rules && priceNum != null && rules.max_price != null && priceNum > rules.max_price;

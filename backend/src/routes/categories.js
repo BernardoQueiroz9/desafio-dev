@@ -56,8 +56,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Regras/limites que o ML impoe para a categoria + o que a conta pode anunciar.
-// Alimenta os alertas e bloqueios do formulario, espelhando o site do ML.
 router.get('/:id/rules', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -75,9 +73,7 @@ router.get('/:id/rules', authMiddleware, async (req, res) => {
 
     res.json({
       name: cat.name,
-      // Categoria permite anuncio no geral (config da categoria)
       listing_allowed: s.listing_allowed !== false && s.status === 'enabled',
-      // A CONTA consegue anunciar nesta categoria agora (especifico do usuario)
       can_list_now: availableTypes.length > 0,
       available_listing_types: availableTypes,
       catalog_domain: s.catalog_domain || null,
@@ -97,7 +93,6 @@ router.get('/:id/rules', authMiddleware, async (req, res) => {
   }
 });
 
-// Atributos obrigatorios da categoria para o formulario dinamico.
 router.get('/:id/required-attributes', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
