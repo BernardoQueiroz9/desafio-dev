@@ -7,3 +7,9 @@ dist/
 .opencode/
 skills-lock.json
 specs/
+
+# Ferramentas de IA / editor (config local, nao faz parte da entrega)
+.claude/
+.mcp.json
+.serena/
+.specify/
