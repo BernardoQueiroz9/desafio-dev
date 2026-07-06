@@ -444,10 +444,18 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         const user = await User.findById(req.userId);
         if (user) {
           const accessToken = await user.getValidToken();
+          // Excluir no ML exige 2 passos: 1) fechar o item; 2) marcar deleted.
           await ml.updateItem(accessToken, ad.ml_id, { status: 'closed' });
+          try {
+            await ml.updateItem(accessToken, ad.ml_id, { deleted: true });
+          } catch (delErr) {
+            // Itens com vendas/pendencias nao podem ser excluidos (regra do ML);
+            // nesse caso permanecem apenas fechados.
+            console.error('ML: item fechado, mas nao pode ser excluido:', delErr.response?.data || delErr.message);
+          }
         }
       } catch (mlErr) {
-        console.error('Erro ao fechar anúncio no ML:', mlErr.message);
+        console.error('Erro ao fechar/excluir anúncio no ML:', mlErr.message);
       }
     }
 
