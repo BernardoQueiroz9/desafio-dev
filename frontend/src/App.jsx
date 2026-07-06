@@ -191,7 +191,11 @@ function Login() {
         </button>
 
         <p style={{ fontSize: '12px', color: 'var(--ml-text-tertiary)', marginTop: '20px' }}>
-          Você será redirecionado para autorizar o acesso à sua conta do Mercado Livre.
+          Você será redirecionado para o site oficial do Mercado Livre para autorizar o acesso. Não pedimos sua senha nesta página.
+        </p>
+
+        <p style={{ fontSize: '11px', color: 'var(--ml-text-tertiary)', marginTop: '16px', lineHeight: 1.5, borderTop: '1px solid var(--ml-border)', paddingTop: '14px' }}>
+          Projeto pessoal de demonstração (portfólio). <strong>Não</strong> é um site oficial e <strong>não</strong> é afiliado, patrocinado ou endossado pelo Mercado Livre. Usa a API pública e o login oficial (OAuth) do Mercado Livre.
         </p>
       </div>
     </div>

@@ -6,6 +6,7 @@ const config = require('./config/env');
 const { router: authRoutes } = require('./routes/auth');
 const adsRoutes = require('./routes/ads');
 const categoriesRoutes = require('./routes/categories');
+const notificationsRoutes = require('./routes/notifications');
 
 /**
  * Cria e configura a aplicacao Express (sem escutar porta nem conectar DB).
@@ -47,6 +48,7 @@ function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/ads', adsRoutes);
   app.use('/api/categories', categoriesRoutes);
+  app.use('/api/notifications', notificationsRoutes);
 
   return app;
 }

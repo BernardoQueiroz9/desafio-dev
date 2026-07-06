@@ -7,6 +7,8 @@ const { authMiddleware } = require('./auth');
 const { handleReauth } = require('../services/errors');
 const router = express.Router();
 
+const { applyMlStateToLocalAds } = require('../services/adSync');
+
 const ML_SITE_ID = config.ml.siteId;
 
 router.post('/', authMiddleware, async (req, res) => {
@@ -292,6 +294,22 @@ router.get('/:id', authMiddleware, async (req, res) => {
     res.json(ad);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar anuncio' });
+  }
+});
+
+// Sincronizacao automatica: aplica no app o estado atual do ML (chamado ao
+// abrir "Meus Anuncios"). Reflete edicoes e remove anuncios fechados no ML.
+router.post('/refresh', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
+    const accessToken = await user.getValidToken();
+    const result = await applyMlStateToLocalAds(req.userId, accessToken);
+    res.json(result);
+  } catch (error) {
+    if (handleReauth(res, error)) return;
+    console.error('Erro no refresh:', error.message);
+    res.status(500).json({ error: 'Erro ao sincronizar com o Mercado Livre' });
   }
 });
 
