@@ -219,6 +219,7 @@ function Dashboard() {
   const [syncData, setSyncData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [sellerActive, setSellerActive] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const abortRef = useRef(null);
 
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -314,6 +315,19 @@ function Dashboard() {
 
   const fetchAds = (f, q) => {
     loadAds(q, f);
+  };
+
+  // Sincroniza os anuncios com o Mercado Livre (aplica edicoes/remocoes feitas
+  // no ML) e recarrega a grade de pesquisa.
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await api.post('/ads/refresh').catch(() => {});
+      loadAds();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleSync = async () => {
@@ -493,6 +507,28 @@ function Dashboard() {
         {view === 'grid' && (
           <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }} className="page-enter grid-main">
             <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing || loading}
+                  title="Sincronizar com o Mercado Livre"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '8px 14px', borderRadius: '6px',
+                    border: '1px solid var(--ml-border)', background: '#FFF',
+                    color: 'var(--ml-text-secondary)', fontSize: '13px', fontWeight: 600,
+                    cursor: refreshing || loading ? 'not-allowed' : 'pointer',
+                    opacity: refreshing || loading ? 0.6 : 1, transition: 'all 0.15s',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                  {refreshing ? 'Atualizando...' : 'Atualizar'}
+                </button>
+              </div>
               {apiError && !loading ? (
                 <ErrorScreen message={apiError} onRetry={() => loadAds()} />
               ) : loading ? skeletonGrid : (
