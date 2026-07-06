@@ -18,6 +18,10 @@ Sistema full-stack para criação, listagem, edição e sincronização de anún
 
 - **Conta vendedora no Mercado Livre** — a conta usada para entrar precisa estar habilitada a vender (cadastro completo: endereço, telefone e documentos). Publicar um anúncio real é uma ação da plataforma do ML e exige uma conta de vendedor; sem isso, o Mercado Livre recusa a publicação.
 
+## Atenção
+
+- Não foi possível remover a questão de segurança do projeto, para seguir clique em 'Saber mais' e 'Avançar para o site mesmo assim'
+
 ## Como anunciar na minha aplicação
 
 Passo a passo para publicar um anúncio de verdade na sua conta do Mercado Livre.
